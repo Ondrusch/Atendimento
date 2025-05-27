@@ -227,14 +227,15 @@ module.exports = {
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
+const BASE_URL = process.env.APP_URL || `http://localhost:${PORT}`;
 
 server.listen(PORT, () => {
   console.log(`
 🚀 Servidor iniciado com sucesso!
 📡 Porta: ${PORT}
-🌐 URL: http://localhost:${PORT}
-📊 Webhook URL: http://localhost:${PORT}/webhook
-🔗 API Base: http://localhost:${PORT}/api
+🌐 URL: ${BASE_URL}
+📊 Webhook URL: ${BASE_URL}/webhook
+🔗 API Base: ${BASE_URL}/api
   `);
 });
 
