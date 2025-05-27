@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat Multiatendimento - Evolution API</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link href="/css/style.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Tela de Login -->
+      <div id="loginScreen" class="login-screen">
+        <div class="container">
+          <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-4">
+              <div class="card shadow">
+                <div class="card-body p-5">
+                  <div class="text-center mb-4">
+                    <i class="fas fa-comments fa-3x text-primary mb-3"></i>
+                    <h3>Chat Multiatendimento</h3>
+                    <p class="text-muted">Evolution API Integration</p>
+                  </div>
+                  <form id="loginForm">
+                    <div class="mb-3">
+                      <label for="email" class="form-label">Email</label>
+                      <input
+                        type="email"
+                        class="form-control"
+                        id="email"
+                        required
+                      />
+                    </div>
+                    <div class="mb-3">
+                      <label for="password" class="form-label">Senha</label>
+                      <input
+                        type="password"
+                        class="form-control"
+                        id="password"
+                        required
+                      />
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                      <i class="fas fa-sign-in-alt me-2"></i>Entrar
+                    </button>
+                  </form>
+                  <div
+                    id="loginError"
+                    class="alert alert-danger mt-3 d-none"
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interface Principal -->
+      <div id="mainInterface" class="d-none">
+        <!-- Header -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+          <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+              <i class="fas fa-comments me-2"></i>Chat Multiatendimento
+            </a>
+            <div class="navbar-nav ms-auto">
+              <!-- Botões administrativos visíveis (apenas para admin) -->
+              <div id="adminButtons" class="nav-item d-none me-2">
+                <button
+                  class="btn btn-outline-light btn-sm me-1"
+                  onclick="showAdminPanel()"
+                  title="Configurações"
+                >
+                  <i class="fas fa-cog"></i> Config
+                </button>
+              </div>
+
+              <!-- Botões de status -->
+              <div class="nav-item me-2">
+                <div class="btn-group btn-group-sm">
+                  <button
+                    class="btn btn-outline-success btn-sm"
+                    onclick="changeStatus('online')"
+                    title="Online"
+                  >
+                    <i class="fas fa-circle"></i>
+                  </button>
+                  <button
+                    class="btn btn-outline-warning btn-sm"
+                    onclick="changeStatus('busy')"
+                    title="Ocupado"
+                  >
+                    <i class="fas fa-circle"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="nav-item dropdown">
+                <a
+                  class="nav-link dropdown-toggle"
+                  href="#"
+                  id="userDropdown"
+                  role="button"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                >
+                  <i class="fas fa-user me-2"></i><span id="userName"></span>
+                  <span id="userStatus" class="badge bg-success ms-2"
+                    >Online</span
+                  >
+                </a>
+                <ul
+                  class="dropdown-menu dropdown-menu-end"
+                  aria-labelledby="userDropdown"
+                >
+                  <li>
+                    <a
+                      class="dropdown-item"
+                      href="#"
+                      onclick="changeStatus('online')"
+                    >
+                      <i class="fas fa-circle text-success me-2"></i>Online
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      class="dropdown-item"
+                      href="#"
+                      onclick="changeStatus('busy')"
+                    >
+                      <i class="fas fa-circle text-warning me-2"></i>Ocupado
+                    </a>
+                  </li>
+                  <li><hr class="dropdown-divider" /></li>
+                  <li id="adminMenuItems" class="d-none">
+                    <a
+                      class="dropdown-item"
+                      href="#"
+                      onclick="showAdminPanel()"
+                    >
+                      <i class="fas fa-cog me-2"></i>Configurações
+                    </a>
+                  </li>
+                  <li id="adminMenuDivider" class="d-none">
+                    <hr class="dropdown-divider" />
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="#" onclick="logout()">
+                      <i class="fas fa-sign-out-alt me-2"></i>Sair
+                    </a>
+                  </li>
+                </ul>
+              </div>
+              <!-- Botão de logout adicional mais visível -->
+              <button
+                class="btn btn-outline-light btn-sm ms-2"
+                onclick="logout()"
+                title="Sair"
+              >
+                <i class="fas fa-sign-out-alt"></i>
+              </button>
+            </div>
+          </div>
+        </nav>
+
+        <div class="container-fluid h-100">
+          <div class="row h-100">
+            <!-- Sidebar - Lista de Conversas -->
+            <div class="col-md-4 col-lg-3 p-0 border-end">
+              <div class="conversation-sidebar">
+                <div class="p-3 border-bottom">
+                  <div
+                    class="d-flex justify-content-between align-items-center"
+                  >
+                    <h5 class="mb-0">Conversas</h5>
+                    <div class="btn-group btn-group-sm" role="group">
+                      <button
+                        type="button"
+                        class="btn btn-outline-primary"
+                        onclick="filterConversations('all')"
+                      >
+                        Todas
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-outline-primary"
+                        onclick="filterConversations('waiting')"
+                      >
+                        Aguardando
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-outline-primary"
+                        onclick="filterConversations('mine')"
+                      >
+                        Minhas
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div id="conversationsList" class="conversation-list">
+                  <!-- Conversas serão carregadas aqui -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Área Principal - Chat -->
+            <div class="col-md-8 col-lg-9 p-0">
+              <div id="chatArea" class="chat-area">
+                <div id="noChatSelected" class="no-chat-selected">
+                  <div class="text-center">
+                    <i class="fas fa-comments fa-5x text-muted mb-3"></i>
+                    <h4 class="text-muted">Selecione uma conversa</h4>
+                    <p class="text-muted">
+                      Escolha uma conversa da lista para começar a atender
+                    </p>
+                  </div>
+                </div>
+
+                <div id="chatInterface" class="d-none">
+                  <!-- Header do Chat -->
+                  <div class="chat-header">
+                    <div
+                      class="d-flex justify-content-between align-items-center"
+                    >
+                      <div class="d-flex align-items-center">
+                        <img
+                          id="contactAvatar"
+                          src="/images/default-avatar.png"
+                          class="rounded-circle me-3"
+                          width="40"
+                          height="40"
+                        />
+                        <div>
+                          <h6 class="mb-0" id="contactName">Nome do Contato</h6>
+                          <small class="text-muted" id="contactPhone"
+                            >+55 11 99999-9999</small
+                          >
+                        </div>
+                      </div>
+                      <div class="btn-group">
+                        <button
+                          class="btn btn-sm btn-outline-primary"
+                          onclick="assignConversation()"
+                          id="assignBtn"
+                        >
+                          <i class="fas fa-user-plus me-1"></i>Assumir
+                        </button>
+                        <button
+                          class="btn btn-sm btn-outline-warning"
+                          onclick="transferConversation()"
+                          id="transferBtn"
+                        >
+                          <i class="fas fa-exchange-alt me-1"></i>Transferir
+                        </button>
+                        <button
+                          class="btn btn-sm btn-outline-danger"
+                          onclick="closeConversation()"
+                          id="closeBtn"
+                        >
+                          <i class="fas fa-times me-1"></i>Finalizar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Mensagens -->
+                  <div id="messagesContainer" class="messages-container">
+                    <!-- Mensagens serão carregadas aqui -->
+                  </div>
+
+                  <!-- Área de digitação -->
+                  <div class="message-input-area">
+                    <div class="input-group">
+                      <button
+                        class="btn btn-outline-secondary"
+                        type="button"
+                        onclick="toggleEmojiPicker()"
+                      >
+                        <i class="fas fa-smile"></i>
+                      </button>
+                      <button
+                        class="btn btn-outline-secondary"
+                        type="button"
+                        onclick="selectFile()"
+                      >
+                        <i class="fas fa-paperclip"></i>
+                      </button>
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="messageInput"
+                        placeholder="Digite sua mensagem..."
+                      />
+                      <button
+                        class="btn btn-primary"
+                        type="button"
+                        onclick="sendMessage()"
+                      >
+                        <i class="fas fa-paper-plane"></i>
+                      </button>
+                    </div>
+                    <input
+                      type="file"
+                      id="fileInput"
+                      class="d-none"
+                      accept="image/*,video/*,audio/*,.pdf,.doc,.docx"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal de Transferência -->
+      <div class="modal fade" id="transferModal" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Transferir Conversa</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label for="transferUser" class="form-label"
+                  >Transferir para:</label
+                >
+                <select class="form-select" id="transferUser">
+                  <option value="">Selecione um usuário...</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="transferReason" class="form-label"
+                  >Motivo (opcional):</label
+                >
+                <textarea
+                  class="form-control"
+                  id="transferReason"
+                  rows="3"
+                ></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                class="btn btn-primary"
+                onclick="confirmTransfer()"
+              >
+                Transferir
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Painel Administrativo -->
+      <div
+        class="modal fade"
+        id="adminPanel"
+        tabindex="-1"
+        data-bs-backdrop="static"
+      >
+        <div class="modal-dialog modal-xl">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">
+                <i class="fas fa-cog me-2"></i>Painel Administrativo
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <!-- Tabs de Navegação -->
+              <ul class="nav nav-tabs" id="adminTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                  <button
+                    class="nav-link active"
+                    id="evolution-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#evolution-config"
+                    type="button"
+                    role="tab"
+                  >
+                    <i class="fas fa-api me-2"></i>Evolution API
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button
+                    class="nav-link"
+                    id="instances-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#instances-config"
+                    type="button"
+                    role="tab"
+                  >
+                    <i class="fas fa-mobile-alt me-2"></i>Instâncias
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button
+                    class="nav-link"
+                    id="users-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#users-config"
+                    type="button"
+                    role="tab"
+                  >
+                    <i class="fas fa-users me-2"></i>Usuários
+                  </button>
+                </li>
+              </ul>
+
+              <!-- Conteúdo das Tabs -->
+              <div class="tab-content mt-3" id="adminTabContent">
+                <!-- Evolution API Config -->
+                <div
+                  class="tab-pane fade show active"
+                  id="evolution-config"
+                  role="tabpanel"
+                >
+                  <div
+                    class="d-flex justify-content-between align-items-center mb-3"
+                  >
+                    <h6>Configurações da Evolution API</h6>
+                    <button
+                      class="btn btn-primary btn-sm"
+                      onclick="showAddEvolutionConfig()"
+                    >
+                      <i class="fas fa-plus me-1"></i>Nova Configuração
+                    </button>
+                  </div>
+                  <div id="evolutionConfigsList">
+                    <!-- Lista será carregada aqui -->
+                  </div>
+                </div>
+
+                <!-- Instâncias Config -->
+                <div
+                  class="tab-pane fade"
+                  id="instances-config"
+                  role="tabpanel"
+                >
+                  <div
+                    class="d-flex justify-content-between align-items-center mb-3"
+                  >
+                    <h6>Instâncias do WhatsApp</h6>
+                    <button
+                      class="btn btn-primary btn-sm"
+                      onclick="showAddInstance()"
+                    >
+                      <i class="fas fa-plus me-1"></i>Nova Instância
+                    </button>
+                  </div>
+                  <div id="instancesList">
+                    <!-- Lista será carregada aqui -->
+                  </div>
+                </div>
+
+                <!-- Usuários Config -->
+                <div class="tab-pane fade" id="users-config" role="tabpanel">
+                  <div
+                    class="d-flex justify-content-between align-items-center mb-3"
+                  >
+                    <h6>Usuários do Sistema</h6>
+                    <button
+                      class="btn btn-primary btn-sm"
+                      onclick="showAddUser()"
+                    >
+                      <i class="fas fa-plus me-1"></i>Novo Usuário
+                    </button>
+                  </div>
+                  <div id="usersList">
+                    <!-- Lista será carregada aqui -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal para Adicionar/Editar Evolution Config -->
+      <div class="modal fade" id="evolutionConfigModal" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="evolutionConfigModalTitle">
+                Nova Configuração Evolution API
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <form id="evolutionConfigForm">
+                <input type="hidden" id="evolutionConfigId" />
+                <div class="mb-3">
+                  <label for="evolutionConfigName" class="form-label"
+                    >Nome</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="evolutionConfigName"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="evolutionConfigUrl" class="form-label"
+                    >URL do Servidor</label
+                  >
+                  <input
+                    type="url"
+                    class="form-control"
+                    id="evolutionConfigUrl"
+                    required
+                    placeholder="https://apiwa.bxdigitalmkt.com.br"
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="evolutionConfigKey" class="form-label"
+                    >API Key</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="evolutionConfigKey"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="evolutionConfigWebhook" class="form-label"
+                    >URL do Webhook</label
+                  >
+                  <input
+                    type="url"
+                    class="form-control"
+                    id="evolutionConfigWebhook"
+                    placeholder="http://localhost:3000/webhook"
+                  />
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                class="btn btn-primary"
+                onclick="saveEvolutionConfig()"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal para Adicionar/Editar Instância -->
+      <div class="modal fade" id="instanceModal" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="instanceModalTitle">
+                Nova Instância
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <form id="instanceForm">
+                <input type="hidden" id="instanceId" />
+                <div class="mb-3">
+                  <label for="instanceName" class="form-label">Nome</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="instanceName"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="instanceInstanceId" class="form-label"
+                    >ID da Instância</label
+                  >
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="instanceInstanceId"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="instanceConfigId" class="form-label"
+                    >Configuração Evolution</label
+                  >
+                  <select class="form-select" id="instanceConfigId" required>
+                    <option value="">Selecione uma configuração...</option>
+                  </select>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                class="btn btn-primary"
+                onclick="saveInstance()"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal para Adicionar/Editar Usuário -->
+      <div class="modal fade" id="userModal" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="userModalTitle">Novo Usuário</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <form id="userForm">
+                <input type="hidden" id="userId" />
+                <div class="mb-3">
+                  <label for="userName" class="form-label">Nome</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="userName"
+                    required
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="userEmail" class="form-label">Email</label>
+                  <input
+                    type="email"
+                    class="form-control"
+                    id="userEmail"
+                    required
+                  />
+                </div>
+                <div class="mb-3" id="passwordField">
+                  <label for="userPassword" class="form-label">Senha</label>
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="userPassword"
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="userRole" class="form-label">Função</label>
+                  <select class="form-select" id="userRole" required>
+                    <option value="atendente">Atendente</option>
+                    <option value="supervisor">Supervisor</option>
+                    <option value="admin">Administrador</option>
+                  </select>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                class="btn btn-primary"
+                onclick="saveUser()"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/app.js"></script>
+  </body>
+</html>
