@@ -1,27 +1,28 @@
-# Chat Multiatendimento - Evolution API
+# Sistema de Chat Multiatendimento
 
-Sistema completo de chat multiatendimento integrado com a Evolution API para WhatsApp Business.
+Sistema completo de chat multiatendimento integrado com Evolution API para WhatsApp.
 
-## 🚀 Características
+## 🚀 Funcionalidades
 
-- **Multiatendimento**: Múltiplos atendentes podem gerenciar conversas simultaneamente
-- **Integração Evolution API**: Conecta diretamente com a Evolution API para WhatsApp
-- **Tempo Real**: Comunicação em tempo real usando Socket.IO
-- **Transferência de Atendimento**: Transfira conversas entre atendentes
-- **Suporte a Mídias**: Envio e recebimento de imagens, vídeos, áudios, documentos e stickers
-- **Localização**: Suporte para envio e recebimento de localizações
-- **Interface Moderna**: Interface responsiva e intuitiva
-- **Controle de Status**: Gerenciamento de status dos atendentes (online, ocupado, offline)
-- **Histórico Completo**: Armazenamento completo de conversas e mensagens
-- **Sistema de Permissões**: Diferentes níveis de acesso (admin, supervisor, atendente)
+- ✅ Interface web moderna e responsiva
+- ✅ Integração com Evolution API (WhatsApp)
+- ✅ Sistema de autenticação e autorização
+- ✅ Gestão de múltiplos atendentes
+- ✅ Transferência de conversas entre atendentes
+- ✅ Notas internas por conversa
+- ✅ Sistema de tags e prioridades
+- ✅ Comunicação em tempo real (Socket.IO)
+- ✅ Suporte a múltiplas mídias (imagem, áudio, vídeo, documentos)
+- ✅ Dashboard administrativo
+- ✅ Relatórios e estatísticas
 
 ## 📋 Pré-requisitos
 
-- Node.js 16+
+- Node.js 18+
 - PostgreSQL 12+
-- Evolution API configurada e funcionando
+- Evolution API configurada
 
-## 🛠️ Instalação
+## 🔧 Instalação
 
 ### 1. Clone o repositório
 
@@ -36,20 +37,12 @@ cd chat-multiatendimento
 npm install
 ```
 
-### 3. Configure o banco de dados
+### 3. Configure as variáveis de ambiente
 
-Crie um banco PostgreSQL e execute o script de criação:
-
-```bash
-psql -U postgres -f database/schema.sql
-```
-
-### 4. Configure as variáveis de ambiente
-
-Copie o arquivo de exemplo e configure suas variáveis:
+Copie o arquivo `.env.example` para `.env` e configure:
 
 ```bash
-cp env.example .env
+cp .env.example .env
 ```
 
 Edite o arquivo `.env` com suas configurações:
@@ -67,11 +60,17 @@ PORT=3000
 JWT_SECRET=seu_jwt_secret_muito_seguro
 
 # Configurações da Evolution API
-EVOLUTION_API_URL=https://apiwa.bxdigitalmkt.com.br
-EVOLUTION_API_KEY=088D8D8CF290-4557-9911-1D07E02D1A55
+EVOLUTION_API_URL=https://sua-evolution-api.com
+EVOLUTION_API_KEY=sua_api_key
 
-# URL do Webhook (onde a Evolution API enviará os dados)
+# URL do Webhook
 WEBHOOK_URL=http://localhost:3000/webhook
+```
+
+### 4. Configure o banco de dados
+
+```bash
+npm run init-db
 ```
 
 ### 5. Inicie o servidor
@@ -82,283 +81,154 @@ npm run dev
 
 # Produção
 npm start
+
+# Com PM2 (recomendado para produção)
+npm run pm2:start
 ```
 
-## 🔧 Configuração da Evolution API
+## 🐳 Deploy com Docker
 
-### 1. Configurar Webhook
+### Build da imagem
 
-Configure o webhook na Evolution API para apontar para seu servidor:
+```bash
+docker build -t chat-multiatendimento .
+```
 
-**URL do Webhook:** `http://seu-servidor:3000/webhook`
+### Executar container
 
-**Eventos necessários:**
+```bash
+docker run -d \
+  --name chat-multiatendimento \
+  -p 3000:3000 \
+  --env-file .env \
+  chat-multiatendimento
+```
 
-- `messages.upsert`
-- `messages.update`
-- `connection.update`
+## ☁️ Deploy com Nixpacks
 
-### 2. Cadastrar Configuração no Sistema
+O projeto está configurado para deploy automático em plataformas que suportam Nixpacks (Railway, etc.).
 
-Acesse o painel administrativo e cadastre:
+O arquivo `nixpacks.toml` já está configurado corretamente.
 
-1. **Configuração da Evolution API**:
+## 👤 Usuário Padrão
 
-   - Nome: Nome identificador
-   - URL do Servidor: URL da sua Evolution API
-   - API Key: Chave de acesso da Evolution API
-   - URL do Webhook: URL onde a Evolution enviará os dados
-
-2. **Instâncias**:
-   - Nome: Nome da instância
-   - ID da Instância: ID da instância no Evolution
-   - Configuração: Selecione a configuração criada anteriormente
-
-## 👥 Usuários e Permissões
-
-### Usuário Padrão
-
-O sistema vem com um usuário administrador padrão:
+Após a inicialização do banco, será criado um usuário administrador:
 
 - **Email:** admin@sistema.com
 - **Senha:** admin123
 
-### Níveis de Permissão
+⚠️ **Importante:** Altere a senha padrão após o primeiro login!
 
-- **Admin**: Acesso total ao sistema
-- **Supervisor**: Gerencia usuários e visualiza relatórios
-- **Atendente**: Atende conversas
+## 📚 Scripts Disponíveis
 
-## 📱 Como Usar
+```bash
+# Desenvolvimento
+npm run dev
 
-### 1. Login
+# Produção
+npm start
 
-Acesse `http://localhost:3000` e faça login com suas credenciais.
+# Inicializar banco de dados
+npm run init-db
 
-### 2. Configuração Inicial (Admin)
+# PM2 (Produção)
+npm run pm2:start    # Iniciar
+npm run pm2:stop     # Parar
+npm run pm2:restart  # Reiniciar
+npm run pm2:logs     # Ver logs
+```
 
-1. Acesse as configurações administrativas
-2. Cadastre a configuração da Evolution API
-3. Cadastre as instâncias do WhatsApp
-4. Crie usuários atendentes
-
-### 3. Atendimento
-
-1. As conversas aparecerão automaticamente na lista
-2. Clique em uma conversa para iniciar o atendimento
-3. Use os botões para assumir, transferir ou finalizar conversas
-4. Envie mensagens de texto, mídias ou localizações
-
-### 4. Funcionalidades do Chat
-
-- **Assumir Conversa**: Clique em "Assumir" para pegar uma conversa em espera
-- **Transferir**: Transfira para outro atendente online
-- **Finalizar**: Encerre o atendimento
-- **Enviar Mídia**: Use o botão de anexo para enviar arquivos
-- **Status**: Altere seu status (online/ocupado) no menu do usuário
-
-## 🔌 API Endpoints
+## 🔗 Endpoints da API
 
 ### Autenticação
 
-```bash
-POST /api/auth/login
-POST /api/auth/logout
-GET /api/auth/verify
-PUT /api/auth/status
-```
+- `POST /api/auth/login` - Login
+- `POST /api/auth/logout` - Logout
+- `GET /api/auth/verify` - Verificar token
+- `PUT /api/auth/status` - Atualizar status
 
 ### Conversas
 
-```bash
-GET /api/conversations
-GET /api/conversations/:id
-POST /api/conversations/:id/assign
-POST /api/conversations/:id/transfer
-POST /api/conversations/:id/close
-GET /api/conversations/:id/messages
-POST /api/conversations/:id/messages
-POST /api/conversations/:id/mark-read
-```
-
-### Administração
-
-```bash
-GET /api/admin/users
-POST /api/admin/users
-PUT /api/admin/users/:id
-DELETE /api/admin/users/:id
-GET /api/admin/evolution-configs
-POST /api/admin/evolution-configs
-PUT /api/admin/evolution-configs/:id
-DELETE /api/admin/evolution-configs/:id
-GET /api/admin/instances
-POST /api/admin/instances
-PUT /api/admin/instances/:id
-DELETE /api/admin/instances/:id
-```
+- `GET /api/conversations` - Listar conversas
+- `GET /api/conversations/:id` - Detalhes da conversa
+- `PUT /api/conversations/:id/assign` - Atribuir conversa
+- `PUT /api/conversations/:id/transfer` - Transferir conversa
+- `POST /api/conversations/:id/notes` - Adicionar nota
 
 ### Webhook
 
-```bash
-POST /webhook
-```
+- `POST /webhook` - Receber dados da Evolution API
 
-## 🔄 Webhook da Evolution API
+### Admin
 
-O sistema recebe webhooks da Evolution API no endpoint `/webhook`. Os dados esperados seguem o formato:
+- `GET /api/admin/users` - Listar usuários
+- `POST /api/admin/users` - Criar usuário
+- `PUT /api/admin/users/:id` - Atualizar usuário
+- `DELETE /api/admin/users/:id` - Deletar usuário
 
-```json
-[
-  {
-    "body": {
-      "event": "messages.upsert",
-      "instance": "NomeInstancia",
-      "data": {
-        "key": {
-          "remoteJid": "556195768696@s.whatsapp.net",
-          "fromMe": false,
-          "id": "8B5813167C488C7FE08696618F63A5D6"
-        },
-        "pushName": "Nome do Contato",
-        "message": {
-          "conversation": "Texto da mensagem"
-        },
-        "messageType": "conversation",
-        "messageTimestamp": 1748371681
-      }
-    }
-  }
-]
-```
+## 🔧 Configuração da Evolution API
 
-## 📊 Estrutura do Banco de Dados
+1. Configure sua instância da Evolution API
+2. Defina o webhook URL: `http://seu-dominio.com/webhook`
+3. Configure a API Key no arquivo `.env`
 
-### Principais Tabelas
+## 📊 Monitoramento
 
-- **users**: Usuários do sistema (atendentes)
-- **evolution_configs**: Configurações da Evolution API
-- **instances**: Instâncias do WhatsApp
-- **contacts**: Contatos/clientes
-- **conversations**: Conversas
-- **messages**: Mensagens
-- **conversation_transfers**: Histórico de transferências
-- **conversation_notes**: Notas internas
-
-## 🚀 Deploy em Produção
-
-### 1. Variáveis de Ambiente
-
-Configure as variáveis para produção:
-
-```env
-NODE_ENV=production
-PORT=3000
-DB_HOST=seu-host-postgres
-DB_PASSWORD=senha-segura
-JWT_SECRET=jwt-secret-muito-seguro
-WEBHOOK_URL=https://seu-dominio.com/webhook
-```
-
-### 2. Proxy Reverso (Nginx)
-
-```nginx
-server {
-    listen 80;
-    server_name seu-dominio.com;
-
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
-
-### 3. Process Manager (PM2)
+### Logs
 
 ```bash
-npm install -g pm2
-pm2 start server.js --name "chat-multiatendimento"
-pm2 startup
-pm2 save
+# Ver logs em tempo real
+npm run pm2:logs
+
+# Logs do sistema
+tail -f logs/combined.log
 ```
 
-## 🔧 Desenvolvimento
+### Status da API
+
+Acesse: `http://localhost:3000/api/status`
+
+## 🛠️ Desenvolvimento
 
 ### Estrutura do Projeto
 
 ```
-├── config/           # Configurações (banco de dados)
-├── database/         # Scripts SQL
-├── middleware/       # Middlewares (autenticação)
-├── models/          # Modelos do banco de dados
+├── config/          # Configurações
+├── database/        # Schema do banco
+├── middleware/      # Middlewares
+├── models/          # Modelos de dados
+├── public/          # Frontend
 ├── routes/          # Rotas da API
-├── services/        # Serviços (Evolution API)
-├── public/          # Frontend (HTML, CSS, JS)
+├── scripts/         # Scripts utilitários
+├── services/        # Serviços
 └── server.js        # Servidor principal
 ```
 
-### Scripts Disponíveis
+### Tecnologias Utilizadas
 
-```bash
-npm start      # Inicia em produção
-npm run dev    # Inicia em desenvolvimento com nodemon
-```
-
-## 🐛 Troubleshooting
-
-### Problemas Comuns
-
-1. **Erro de conexão com banco**
-
-   - Verifique as credenciais no `.env`
-   - Certifique-se que o PostgreSQL está rodando
-
-2. **Webhook não recebe dados**
-
-   - Verifique se a URL está acessível externamente
-   - Confirme a configuração na Evolution API
-
-3. **Mensagens não aparecem**
-   - Verifique os logs do servidor
-   - Confirme se a instância está ativa
-
-### Logs
-
-Os logs são exibidos no console. Para produção, considere usar um sistema de logs como Winston.
-
-## 📝 Licença
-
-Este projeto está sob a licença MIT. Veja o arquivo LICENSE para mais detalhes.
+- **Backend:** Node.js, Express.js
+- **Banco:** PostgreSQL
+- **Real-time:** Socket.IO
+- **Frontend:** HTML5, CSS3, JavaScript
+- **Autenticação:** JWT
+- **Deploy:** Docker, Nixpacks
 
 ## 🤝 Contribuição
 
 1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
+2. Crie uma branch para sua feature
+3. Commit suas mudanças
+4. Push para a branch
 5. Abra um Pull Request
 
-## 📞 Suporte
+## 📄 Licença
 
-Para suporte, abra uma issue no repositório ou entre em contato através do email.
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
 
-## 🔄 Atualizações
+## 🆘 Suporte
 
-Para atualizar o sistema:
-
-1. Faça backup do banco de dados
-2. Atualize o código
-3. Execute migrações se necessário
-4. Reinicie o servidor
+Para suporte, abra uma issue no repositório ou entre em contato.
 
 ---
 
-**Desenvolvido com ❤️ para facilitar o atendimento via WhatsApp**
+Desenvolvido com ❤️ para facilitar o atendimento ao cliente via WhatsApp.

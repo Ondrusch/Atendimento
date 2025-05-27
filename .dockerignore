@@ -4,6 +4,7 @@ npm-debug.log
 .gitignore
 README.md
 .env
+.env.example
 .nyc_output
 coverage
 .nyc_output
@@ -11,4 +12,7 @@ coverage
 .coverage/
 .vscode
 .DS_Store
-*.log 
+*.log
+logs/*.log
+.coolify.yml
+ecosystem.config.js 
