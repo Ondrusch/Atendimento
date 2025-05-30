@@ -4,6 +4,7 @@ const Message = require("../models/Message");
 const User = require("../models/User");
 const EvolutionService = require("../services/EvolutionService");
 const { authMiddleware } = require("../middleware/auth");
+const Instance = require("../models/Instance");
 
 const router = express.Router();
 
@@ -227,9 +228,19 @@ router.post("/:id/messages", authMiddleware, async (req, res) => {
       });
     }
 
+    // Buscar a instância pelo nome para obter as configurações
+    const instance = await Instance.findByName(conversation.instance_name);
+    if (!instance) {
+      return res.status(404).json({
+        success: false,
+        message: "Instância não encontrada",
+      });
+    }
+
     // Criar serviço Evolution API
-    const evolutionService = await EvolutionService.createFromInstanceDbId(
-      conversation.instance_id
+    const evolutionService = new EvolutionService(
+      instance.server_url,
+      instance.api_key
     );
     const phone = EvolutionService.validatePhoneNumber(
       conversation.contact_phone
