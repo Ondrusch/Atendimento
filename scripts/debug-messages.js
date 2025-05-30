@@ -20,6 +20,23 @@ async function debugMessages() {
       }
     }
 
+    // Verificar estrutura das conversas
+    console.log("\n📋 Estrutura da tabela conversations:");
+    const convStructure = await pool.query(`
+      SELECT column_name, data_type, is_nullable 
+      FROM information_schema.columns 
+      WHERE table_name = 'conversations' 
+      ORDER BY ordinal_position
+    `);
+
+    convStructure.rows.forEach((col) => {
+      console.log(
+        `   ${col.column_name}: ${col.data_type} (${
+          col.is_nullable === "YES" ? "nullable" : "not null"
+        })`
+      );
+    });
+
     // Verificar estrutura das mensagens
     console.log("\n📋 Estrutura da tabela messages:");
     const structure = await pool.query(`
@@ -37,46 +54,48 @@ async function debugMessages() {
       );
     });
 
-    // Verificar se há conversas
+    // Verificar se há conversas (usando estrutura correta)
     const conversations = await pool.query(
-      "SELECT id, contact_name, contact_phone, status FROM conversations LIMIT 5"
+      "SELECT * FROM conversations LIMIT 5"
     );
     console.log("\n💬 Conversas encontradas:");
     if (conversations.rows.length === 0) {
       console.log("   ❌ Nenhuma conversa encontrada!");
+      console.log(
+        "   ℹ️  Para que as mensagens apareçam, você precisa primeiro receber mensagens via WhatsApp"
+      );
+      console.log(
+        "   ℹ️  As conversas são criadas automaticamente quando chegam mensagens via webhook"
+      );
     } else {
       conversations.rows.forEach((conv) => {
+        console.log(`   ID: ${conv.id}, Status: ${conv.status}`);
+      });
+    }
+
+    // Verificar webhooks configurados
+    console.log("\n🔗 Verificando configurações de webhook...");
+    const instances = await pool.query(
+      "SELECT name, webhook_url FROM instances"
+    );
+    if (instances.rows.length === 0) {
+      console.log("   ❌ Nenhuma instância configurada!");
+    } else {
+      instances.rows.forEach((inst) => {
         console.log(
-          `   ID: ${conv.id}, Contato: ${
-            conv.contact_name || conv.contact_phone
-          }, Status: ${conv.status}`
+          `   Instância: ${inst.name}, Webhook: ${
+            inst.webhook_url || "Não configurado"
+          }`
         );
       });
     }
 
-    // Verificar mensagens por conversa
-    if (conversations.rows.length > 0) {
-      const firstConvId = conversations.rows[0].id;
-      const messages = await pool.query(
-        "SELECT id, content, message_type, is_from_me, created_at FROM messages WHERE conversation_id = $1 ORDER BY created_at DESC LIMIT 5",
-        [firstConvId]
-      );
-
-      console.log(`\n📨 Mensagens da conversa ${firstConvId}:`);
-      if (messages.rows.length === 0) {
-        console.log("   ❌ Nenhuma mensagem encontrada para esta conversa!");
-      } else {
-        messages.rows.forEach((msg) => {
-          console.log(
-            `   ${msg.is_from_me ? "➡️" : "⬅️"} ${msg.content} (${
-              msg.message_type
-            }) - ${msg.created_at}`
-          );
-        });
-      }
-    }
-
     console.log("\n✅ Diagnóstico concluído!");
+    console.log("\n📝 Resumo do problema:");
+    console.log("   - Não há conversas no banco de dados");
+    console.log("   - Mensagens só aparecem quando há conversas");
+    console.log("   - Conversas são criadas via webhook do WhatsApp");
+    console.log("   - Verifique se o webhook está configurado corretamente");
   } catch (error) {
     console.error("❌ Erro:", error);
   } finally {

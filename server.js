@@ -46,6 +46,113 @@ app.use("/webhook", webhookRoutes);
 app.use("/api/conversations", conversationRoutes);
 app.use("/api/admin", adminRoutes);
 
+// ENDPOINT TEMPORÁRIO PARA CRIAR CONVERSA DE TESTE
+app.post("/api/create-test-conversation", async (req, res) => {
+  try {
+    console.log("🚀 Criando conversa de teste via API...");
+
+    const { v4: uuidv4 } = require("uuid");
+
+    // 1. Criar um contato de teste
+    const contactId = uuidv4();
+    const contact = await pool.query(
+      `
+      INSERT INTO contacts (id, phone, name, avatar_url, created_at)
+      VALUES ($1, $2, $3, $4, NOW())
+      RETURNING *
+    `,
+      [contactId, "5511999999999", "Cliente Teste", null]
+    );
+
+    // 2. Criar uma conversa de teste
+    const conversationId = uuidv4();
+    await pool.query(
+      `
+      INSERT INTO conversations (id, contact_id, status, priority, last_message_at, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, NOW(), NOW(), NOW())
+      RETURNING *
+    `,
+      [conversationId, contactId, "waiting", "normal"]
+    );
+
+    // 3. Criar mensagens de teste
+    const messages = [
+      {
+        content: "Olá! Preciso de ajuda com meu pedido.",
+        is_from_me: false,
+        message_type: "text",
+      },
+      {
+        content: "Olá! Em que posso ajudá-lo?",
+        is_from_me: true,
+        message_type: "text",
+      },
+      {
+        content: "Meu pedido não chegou ainda.",
+        is_from_me: false,
+        message_type: "text",
+      },
+      {
+        content: "Vou verificar o status para você.",
+        is_from_me: true,
+        message_type: "text",
+      },
+    ];
+
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      const messageId = uuidv4();
+
+      await pool.query(
+        `
+        INSERT INTO messages (
+          id, conversation_id, message_id, sender_type, sender_id, content, 
+          message_type, is_from_me, status, timestamp, created_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+      `,
+        [
+          messageId,
+          conversationId,
+          `test_msg_${i}`,
+          msg.is_from_me ? "user" : "contact",
+          null,
+          msg.content,
+          msg.message_type,
+          msg.is_from_me,
+          "delivered",
+          Date.now() + i * 60000,
+        ]
+      );
+    }
+
+    // 4. Atualizar última mensagem da conversa
+    await pool.query(
+      `UPDATE conversations SET last_message_at = NOW() WHERE id = $1`,
+      [conversationId]
+    );
+
+    console.log("✅ Conversa de teste criada com sucesso!");
+
+    res.json({
+      success: true,
+      message: "Conversa de teste criada com sucesso!",
+      data: {
+        conversationId,
+        contactName: contact.rows[0].name,
+        messagesCount: messages.length,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Erro ao criar conversa de teste:", error);
+    res.status(500).json({
+      success: false,
+      message: "Erro ao criar conversa de teste",
+      error: error.message,
+    });
+  }
+});
+
 // Rota de status da API
 app.get("/api/status", async (req, res) => {
   try {
