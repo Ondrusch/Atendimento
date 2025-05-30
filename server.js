@@ -373,11 +373,12 @@ app.post("/api/debug-send-message", async (req, res) => {
 
     console.log("📱 Tentando enviar mensagem...");
     console.log("Para:", phone);
+    console.log("Instância Name:", instance.rows[0].name);
     console.log("Instância ID:", instance.rows[0].instance_id);
     console.log("Mensagem:", message);
 
     const result = await evolutionService.sendText(
-      instance.rows[0].instance_id,
+      instance.rows[0].name,
       phone,
       message
     );

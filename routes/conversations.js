@@ -248,7 +248,7 @@ router.post("/:id/messages", authMiddleware, async (req, res) => {
     switch (type) {
       case "text":
         result = await evolutionService.sendText(
-          conversation.instance_id,
+          conversation.instance_name,
           phone,
           content
         );
@@ -263,7 +263,7 @@ router.post("/:id/messages", authMiddleware, async (req, res) => {
         }
 
         result = await evolutionService.sendMedia(
-          conversation.instance_id,
+          conversation.instance_name,
           phone,
           {
             mediatype: media.mediatype || "image",
@@ -284,7 +284,7 @@ router.post("/:id/messages", authMiddleware, async (req, res) => {
         }
 
         result = await evolutionService.sendAudio(
-          conversation.instance_id,
+          conversation.instance_name,
           phone,
           media.base64
         );
@@ -299,7 +299,7 @@ router.post("/:id/messages", authMiddleware, async (req, res) => {
         }
 
         result = await evolutionService.sendSticker(
-          conversation.instance_id,
+          conversation.instance_name,
           phone,
           media.base64
         );
@@ -314,7 +314,7 @@ router.post("/:id/messages", authMiddleware, async (req, res) => {
         }
 
         result = await evolutionService.sendLocation(
-          conversation.instance_id,
+          conversation.instance_name,
           phone,
           location
         );
