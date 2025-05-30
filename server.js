@@ -278,6 +278,55 @@ app.post("/api/create-bruno-instance", async (req, res) => {
   }
 });
 
+// ENDPOINT TEMPORÁRIO PARA LISTAR INSTÂNCIAS
+app.get("/api/debug-instances", async (req, res) => {
+  try {
+    console.log("🔍 Listando todas as instâncias...");
+
+    // Listar todas as instâncias
+    const instances = await pool.query(
+      "SELECT * FROM instances ORDER BY created_at DESC"
+    );
+    const configs = await pool.query(
+      "SELECT * FROM evolution_configs ORDER BY created_at DESC"
+    );
+
+    // Buscar especificamente por "Bruno"
+    const brunoInstance = await pool.query(
+      "SELECT * FROM instances WHERE instance_id = $1",
+      ["Bruno"]
+    );
+    const brunoInstanceByName = await pool.query(
+      "SELECT * FROM instances WHERE name ILIKE $1",
+      ["%Bruno%"]
+    );
+
+    res.json({
+      success: true,
+      data: {
+        total_instances: instances.rows.length,
+        total_configs: configs.rows.length,
+        all_instances: instances.rows,
+        all_configs: configs.rows,
+        bruno_by_instance_id: brunoInstance.rows,
+        bruno_by_name: brunoInstanceByName.rows,
+        search_info: {
+          searching_for: "Bruno",
+          case_sensitive: true,
+          field_searched: "instance_id",
+        },
+      },
+    });
+  } catch (error) {
+    console.error("❌ Erro ao listar instâncias:", error);
+    res.status(500).json({
+      success: false,
+      message: "Erro ao listar instâncias",
+      error: error.message,
+    });
+  }
+});
+
 // Rota de status da API
 app.get("/api/status", async (req, res) => {
   try {
