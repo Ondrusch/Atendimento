@@ -327,6 +327,85 @@ app.get("/api/debug-instances", async (req, res) => {
   }
 });
 
+// ENDPOINT TEMPORÁRIO PARA DEBUG DE ENVIO DE MENSAGENS
+app.post("/api/debug-send-message", async (req, res) => {
+  try {
+    console.log("🚀 Testando envio de mensagem...");
+
+    const { phone = "556195846181", message = "Teste de envio" } = req.body;
+
+    // 1. Buscar instância Bruno
+    const instance = await pool.query(
+      "SELECT * FROM instances WHERE name = $1",
+      ["Bruno"]
+    );
+    if (instance.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Instância Bruno não encontrada",
+      });
+    }
+
+    console.log("✅ Instância encontrada:", instance.rows[0].name);
+
+    // 2. Buscar configuração da Evolution API
+    const config = await pool.query(
+      "SELECT * FROM evolution_configs WHERE id = $1",
+      [instance.rows[0].evolution_config_id]
+    );
+    if (config.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Configuração Evolution API não encontrada",
+      });
+    }
+
+    console.log("✅ Config encontrada:", config.rows[0].name);
+
+    // 3. Testar envio via Evolution API
+    const EvolutionService = require("./services/EvolutionService");
+
+    console.log("📡 Tentando criar serviço Evolution...");
+    const evolutionService = new EvolutionService(
+      config.rows[0].server_url,
+      config.rows[0].api_key
+    );
+
+    console.log("📱 Tentando enviar mensagem...");
+    console.log("Para:", phone);
+    console.log("Instância ID:", instance.rows[0].instance_id);
+    console.log("Mensagem:", message);
+
+    const result = await evolutionService.sendText(
+      instance.rows[0].instance_id,
+      phone,
+      message
+    );
+
+    console.log("📤 Resultado do envio:", result);
+
+    res.json({
+      success: true,
+      message: "Teste de envio concluído",
+      data: {
+        instance: instance.rows[0],
+        config: config.rows[0],
+        sendResult: result,
+        phone: phone,
+        messageText: message,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Erro no teste de envio:", error);
+    res.status(500).json({
+      success: false,
+      message: "Erro no teste de envio",
+      error: error.message,
+      stack: error.stack,
+    });
+  }
+});
+
 // Rota de status da API
 app.get("/api/status", async (req, res) => {
   try {
