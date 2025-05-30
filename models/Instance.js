@@ -42,6 +42,30 @@ class Instance {
     return result.rows[0];
   }
 
+  static async findByName(name) {
+    const query = `
+      SELECT i.*, ec.name as config_name, ec.server_url, ec.api_key
+      FROM instances i
+      LEFT JOIN evolution_configs ec ON i.evolution_config_id = ec.id
+      WHERE i.name = $1
+    `;
+
+    const result = await pool.query(query, [name]);
+    return result.rows[0];
+  }
+
+  static async findByInstanceIdOrName(identifier) {
+    const query = `
+      SELECT i.*, ec.name as config_name, ec.server_url, ec.api_key
+      FROM instances i
+      LEFT JOIN evolution_configs ec ON i.evolution_config_id = ec.id
+      WHERE i.instance_id = $1 OR i.name = $1
+    `;
+
+    const result = await pool.query(query, [identifier]);
+    return result.rows[0];
+  }
+
   static async findAll() {
     const query = `
       SELECT i.*, 

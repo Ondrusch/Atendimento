@@ -90,9 +90,12 @@ async function processMessageUpsert(eventData, instanceName) {
 
     // Buscar a instância no banco
     console.log(`🔍 Buscando instância: ${instanceName}`);
-    const instance = await Instance.findByInstanceId(instanceName);
+    const instance = await Instance.findByInstanceIdOrName(instanceName);
     if (!instance) {
       console.error(`❌ Instância não encontrada: ${instanceName}`);
+      console.log(
+        `ℹ️ Tentando buscar por instance_id OU name = "${instanceName}"`
+      );
       return;
     }
     console.log(`✅ Instância encontrada:`, instance.name);
