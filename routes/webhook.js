@@ -14,18 +14,18 @@ router.post("/", async (req, res) => {
 
     const webhookData = req.body;
 
-    // Verificar se é um array (como no exemplo fornecido)
-    const data = Array.isArray(webhookData) ? webhookData[0] : webhookData;
+    // A estrutura correta do webhook é diretamente no body
+    const { event, instance, data: eventData } = webhookData;
 
-    if (!data || !data.body) {
-      console.log("❌ Dados do webhook inválidos - sem data.body");
+    if (!event || !instance || !eventData) {
+      console.log("❌ Dados do webhook inválidos - faltam campos obrigatórios");
+      console.log("Event:", event, "Instance:", instance, "Data:", !!eventData);
       return res.status(400).json({
         success: false,
         message: "Dados do webhook inválidos",
       });
     }
 
-    const { event, instance, data: eventData } = data.body;
     console.log(`📧 Processando evento: ${event} para instância: ${instance}`);
 
     // Processar diferentes tipos de eventos

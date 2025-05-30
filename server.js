@@ -203,6 +203,81 @@ app.get("/api/debug-webhook", async (req, res) => {
   }
 });
 
+// ENDPOINT TEMPORÁRIO PARA CRIAR INSTÂNCIA BRUNO
+app.post("/api/create-bruno-instance", async (req, res) => {
+  try {
+    console.log("🚀 Criando instância Bruno...");
+
+    const { v4: uuidv4 } = require("uuid");
+
+    // Primeiro verificar se já existe
+    const existingInstance = await pool.query(
+      "SELECT * FROM instances WHERE instance_id = $1",
+      ["Bruno"]
+    );
+
+    if (existingInstance.rows.length > 0) {
+      return res.json({
+        success: true,
+        message: "Instância Bruno já existe",
+        data: existingInstance.rows[0],
+      });
+    }
+
+    // Verificar se existe uma evolution_config
+    let configId;
+    const configs = await pool.query("SELECT * FROM evolution_configs LIMIT 1");
+
+    if (configs.rows.length === 0) {
+      // Criar uma config padrão
+      const configResult = await pool.query(
+        `
+        INSERT INTO evolution_configs (id, name, server_url, api_key, is_active, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+        RETURNING *
+      `,
+        [
+          uuidv4(),
+          "Default Config",
+          "https://apiwa.bxdigitalmkt.com.br",
+          "088D8D8CF290-4557-9911-1D07E02D1A55",
+          true,
+        ]
+      );
+      configId = configResult.rows[0].id;
+      console.log("✅ Config criada:", configResult.rows[0].name);
+    } else {
+      configId = configs.rows[0].id;
+      console.log("✅ Config existente:", configs.rows[0].name);
+    }
+
+    // Criar a instância Bruno
+    const instanceResult = await pool.query(
+      `
+      INSERT INTO instances (id, name, instance_id, evolution_config_id, is_active, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+      RETURNING *
+    `,
+      [uuidv4(), "Bruno WhatsApp", "Bruno", configId, true]
+    );
+
+    console.log("✅ Instância Bruno criada com sucesso!");
+
+    res.json({
+      success: true,
+      message: "Instância Bruno criada com sucesso!",
+      data: instanceResult.rows[0],
+    });
+  } catch (error) {
+    console.error("❌ Erro ao criar instância Bruno:", error);
+    res.status(500).json({
+      success: false,
+      message: "Erro ao criar instância Bruno",
+      error: error.message,
+    });
+  }
+});
+
 // Rota de status da API
 app.get("/api/status", async (req, res) => {
   try {
