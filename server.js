@@ -406,6 +406,79 @@ app.post("/api/debug-send-message", async (req, res) => {
   }
 });
 
+// PÁGINA TEMPORÁRIA PARA TESTAR ENVIO DE MENSAGENS
+app.get("/api/debug-send-message", (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Teste de Envio - WhatsApp</title>
+        <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            .container { max-width: 500px; margin: 0 auto; }
+            .form-group { margin: 15px 0; }
+            label { display: block; margin-bottom: 5px; font-weight: bold; }
+            input, textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+            button { background: #25d366; color: white; padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; }
+            button:hover { background: #128c7e; }
+            .result { margin-top: 20px; padding: 15px; border-radius: 5px; white-space: pre-wrap; }
+            .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+            .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>🔧 Teste de Envio de Mensagem WhatsApp</h2>
+            <form id="testForm">
+                <div class="form-group">
+                    <label for="phone">Número do Telefone:</label>
+                    <input type="text" id="phone" value="556195846181" placeholder="556195846181">
+                </div>
+                <div class="form-group">
+                    <label for="message">Mensagem:</label>
+                    <textarea id="message" rows="3" placeholder="Digite a mensagem...">Teste de envio do sistema de chat</textarea>
+                </div>
+                <button type="submit">📤 Enviar Teste</button>
+            </form>
+            <div id="result"></div>
+        </div>
+
+        <script>
+            document.getElementById('testForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const phone = document.getElementById('phone').value;
+                const message = document.getElementById('message').value;
+                const resultDiv = document.getElementById('result');
+                
+                resultDiv.innerHTML = '<div class="result">⏳ Enviando...</div>';
+                
+                try {
+                    const response = await fetch('/api/debug-send-message', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ phone, message })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        resultDiv.innerHTML = '<div class="result success">✅ Sucesso!\\n\\n' + JSON.stringify(data, null, 2) + '</div>';
+                    } else {
+                        resultDiv.innerHTML = '<div class="result error">❌ Erro!\\n\\n' + JSON.stringify(data, null, 2) + '</div>';
+                    }
+                } catch (error) {
+                    resultDiv.innerHTML = '<div class="result error">❌ Erro na requisição!\\n\\n' + error.message + '</div>';
+                }
+            });
+        </script>
+    </body>
+    </html>
+  `);
+});
+
 // Rota de status da API
 app.get("/api/status", async (req, res) => {
   try {
