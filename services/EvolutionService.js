@@ -21,12 +21,28 @@ class EvolutionService {
       const data = {
         number: number,
         text: text,
-        delay: options.delay || 0,
-        linkPreview: options.linkPreview || false,
-        mentionsEveryOne: options.mentionsEveryOne || false,
-        mentioned: options.mentioned || [],
-        quoted: options.quoted || null,
       };
+
+      // Adicionar campos opcionais apenas se tiverem valor
+      if (options.delay && options.delay > 0) {
+        data.delay = options.delay;
+      }
+
+      if (options.linkPreview) {
+        data.linkPreview = options.linkPreview;
+      }
+
+      if (options.mentionsEveryOne) {
+        data.mentionsEveryOne = options.mentionsEveryOne;
+      }
+
+      if (options.mentioned && options.mentioned.length > 0) {
+        data.mentioned = options.mentioned;
+      }
+
+      if (options.quoted) {
+        data.quoted = options.quoted;
+      }
 
       const response = await this.axios.post(
         `/message/sendText/${instanceId}`,
