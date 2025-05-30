@@ -376,6 +376,9 @@ app.post("/api/debug-send-message", async (req, res) => {
     console.log("Instância Name:", instance.rows[0].name);
     console.log("Instância ID:", instance.rows[0].instance_id);
     console.log("Mensagem:", message);
+    console.log("🔧 Configurações da API:");
+    console.log("Server URL:", config.rows[0].server_url);
+    console.log("API Key:", config.rows[0].api_key.substring(0, 10) + "...");
 
     const result = await evolutionService.sendText(
       instance.rows[0].name,

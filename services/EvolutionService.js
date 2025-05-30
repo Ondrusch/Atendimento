@@ -41,6 +41,16 @@ class EvolutionService {
         "Erro ao enviar mensagem de texto:",
         error.response?.data || error.message
       );
+      console.error(
+        "Detalhes completos do erro:",
+        JSON.stringify(error.response?.data, null, 2)
+      );
+      console.error("Status:", error.response?.status);
+      console.error("URL chamada:", error.config?.url);
+      console.error(
+        "Dados enviados:",
+        JSON.stringify(error.config?.data, null, 2)
+      );
       return {
         success: false,
         error: error.response?.data || error.message,
