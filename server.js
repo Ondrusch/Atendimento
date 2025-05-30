@@ -153,6 +153,56 @@ app.post("/api/create-test-conversation", async (req, res) => {
   }
 });
 
+// ENDPOINT TEMPORÁRIO PARA DEBUG DE WEBHOOKS
+app.get("/api/debug-webhook", async (req, res) => {
+  try {
+    console.log("🔍 Verificando webhooks recebidos...");
+
+    // Verificar se há instâncias configuradas
+    const instances = await pool.query("SELECT * FROM instances");
+    const conversations = await pool.query(
+      "SELECT COUNT(*) FROM conversations"
+    );
+    const messages = await pool.query("SELECT COUNT(*) FROM messages");
+    const contacts = await pool.query("SELECT COUNT(*) FROM contacts");
+
+    // Últimas mensagens recebidas
+    const latestMessages = await pool.query(`
+      SELECT m.*, c.name as contact_name, c.phone
+      FROM messages m
+      LEFT JOIN conversations conv ON m.conversation_id = conv.id
+      LEFT JOIN contacts c ON conv.contact_id = c.id
+      ORDER BY m.created_at DESC
+      LIMIT 10
+    `);
+
+    res.json({
+      success: true,
+      data: {
+        instances: {
+          count: instances.rows.length,
+          list: instances.rows,
+        },
+        stats: {
+          conversations: conversations.rows[0].count,
+          messages: messages.rows[0].count,
+          contacts: contacts.rows[0].count,
+        },
+        latestMessages: latestMessages.rows,
+        webhookUrl: `${process.env.APP_URL || "http://localhost:3000"}/webhook`,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error("❌ Erro no debug webhook:", error);
+    res.status(500).json({
+      success: false,
+      message: "Erro no debug webhook",
+      error: error.message,
+    });
+  }
+});
+
 // Rota de status da API
 app.get("/api/status", async (req, res) => {
   try {
