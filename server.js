@@ -479,6 +479,75 @@ app.get("/api/debug-send-message", (req, res) => {
   `);
 });
 
+// ENDPOINT PARA LISTAR INSTÂNCIAS DA EVOLUTION API
+app.get("/api/evolution-instances", async (req, res) => {
+  try {
+    console.log("🔍 Listando instâncias da Evolution API...");
+
+    // Buscar config da Evolution API
+    const config = await pool.query(
+      "SELECT * FROM evolution_configs WHERE is_active = true LIMIT 1"
+    );
+    if (config.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Configuração Evolution API não encontrada",
+      });
+    }
+
+    console.log("✅ Config encontrada:", config.rows[0].name);
+
+    // Listar instâncias da Evolution API
+    const EvolutionService = require("./services/EvolutionService");
+    const evolutionService = new EvolutionService(
+      config.rows[0].server_url,
+      config.rows[0].api_key
+    );
+
+    // Fazer requisição para listar instâncias
+    const axios = require("axios");
+    const response = await axios.get(
+      `${config.rows[0].server_url}/instance/fetchInstances`,
+      {
+        headers: {
+          apikey: config.rows[0].api_key,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    console.log("📋 Instâncias da Evolution API:", response.data);
+
+    // Comparar com instâncias no banco local
+    const localInstances = await pool.query("SELECT * FROM instances");
+
+    res.json({
+      success: true,
+      data: {
+        evolution_config: config.rows[0],
+        evolution_instances: response.data,
+        local_instances: localInstances.rows,
+        comparison: {
+          total_evolution: response.data?.length || 0,
+          total_local: localInstances.rows.length,
+          mismatches: localInstances.rows.filter(
+            (local) =>
+              !response.data?.find((evo) => evo.instanceName === local.name)
+          ),
+        },
+      },
+    });
+  } catch (error) {
+    console.error("❌ Erro ao listar instâncias da Evolution API:", error);
+    res.status(500).json({
+      success: false,
+      message: "Erro ao listar instâncias da Evolution API",
+      error: error.message,
+      details: error.response?.data || null,
+    });
+  }
+});
+
 // Rota de status da API
 app.get("/api/status", async (req, res) => {
   try {
