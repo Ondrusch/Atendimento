@@ -100,34 +100,28 @@ async function processMessageUpsert(eventData, instanceName) {
     }
     console.log(`✅ Instância encontrada:`, instance.name);
 
-    // Se for mensagem enviada por mim (fromMe: true), não processar como nova mensagem
-    if (fromMe) {
-      console.log("📤 Mensagem enviada por mim - não criando nova mensagem");
-
-      // Extrair número do telefone
-      const phone = EvolutionService.extractPhoneFromJid(remoteJid);
-      console.log(`📞 Telefone extraído: ${phone}`);
-
-      // Atualizar nome do contato se necessário
-      console.log(`👤 Atualizando nome do contato...`);
-      const contact = await Contact.create({
-        phone: phone,
-        name: pushName || null, // Usar o pushName do remoteJid para mensagens fromMe
-      });
-      console.log(`✅ Contato atualizado:`, contact.name || contact.phone);
-
-      return; // Não criar mensagem no banco para fromMe: true
-    }
-
     // Extrair número do telefone
     const phone = EvolutionService.extractPhoneFromJid(remoteJid);
     console.log(`📞 Telefone extraído: ${phone}`);
+
+    // Determinar o nome correto do contato
+    let contactName;
+    if (fromMe) {
+      // Para mensagens fromMe, buscar o nome do contato existente ou usar o pushName do remoteJid
+      console.log(`👤 Mensagem fromMe - buscando nome do contato ${phone}...`);
+      const existingContact = await Contact.findByPhone(phone);
+      contactName = existingContact?.name || pushName || null;
+      console.log(`📝 Nome do contato para fromMe: ${contactName || phone}`);
+    } else {
+      // Para mensagens recebidas, usar o pushName normalmente
+      contactName = pushName || null;
+    }
 
     // Criar ou atualizar contato
     console.log(`👤 Criando/atualizando contato...`);
     const contact = await Contact.create({
       phone: phone,
-      name: pushName || null,
+      name: contactName,
     });
     console.log(`✅ Contato processado:`, contact.name || contact.phone);
 
