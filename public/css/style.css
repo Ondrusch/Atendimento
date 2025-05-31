@@ -40,6 +40,8 @@ body {
 
 .navbar {
   flex-shrink: 0;
+  position: relative;
+  z-index: 1030;
 }
 
 .container-fluid {
@@ -524,7 +526,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 10000;
 }
 
 .loading-container {
@@ -595,11 +597,17 @@ body {
   transition: background-color 0.2s ease;
   text-decoration: none !important;
   color: rgba(255, 255, 255, 0.9) !important;
+  border: none;
+  background: transparent;
 }
 
-.profile-dropdown:hover {
+.profile-dropdown:hover,
+.profile-dropdown:focus {
   background-color: rgba(255, 255, 255, 0.1);
   color: white !important;
+  border: none;
+  outline: none;
+  box-shadow: none;
 }
 
 /* Avatar Circles */
@@ -721,6 +729,13 @@ body {
   padding: 0;
   margin-top: 8px;
   overflow: hidden;
+  z-index: 9999 !important;
+  position: absolute !important;
+  top: 100% !important;
+  right: 0 !important;
+  left: auto !important;
+  background-color: white;
+  transform: none !important;
 }
 
 .profile-menu .dropdown-header {
@@ -839,4 +854,34 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Garantir que o dropdown seja visível */
+.dropdown-menu.show {
+  display: block !important;
+  z-index: 9999 !important;
+}
+
+/* Fix para navbar dropdown */
+.navbar .dropdown-menu {
+  position: absolute;
+  z-index: 9999 !important;
+}
+
+/* Garantir que o dropdown container tenha z-index alto */
+.navbar .dropdown {
+  position: relative;
+  z-index: 1040 !important;
+}
+
+/* Fix para Bootstrap dropdown especificamente */
+.dropdown-menu {
+  z-index: 9999 !important;
+  position: absolute !important;
+}
+
+.profile-menu.show {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
