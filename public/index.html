@@ -87,18 +87,18 @@
             </a>
             <div class="navbar-nav ms-auto">
               <!-- Botões administrativos visíveis (apenas para admin) -->
-              <div id="adminButtons" class="nav-item d-none me-2">
+              <div id="adminButtons" class="nav-item d-none me-3">
                 <button
-                  class="btn btn-outline-light btn-sm me-1"
+                  class="btn btn-outline-light btn-sm"
                   onclick="showAdminPanel()"
                   title="Configurações"
                 >
-                  <i class="fas fa-cog"></i> Config
+                  <i class="fas fa-cog me-1"></i>Config
                 </button>
               </div>
 
               <!-- Botões de status -->
-              <div class="nav-item me-2">
+              <div class="nav-item me-3">
                 <div class="btn-group btn-group-sm">
                   <button
                     class="btn btn-outline-success btn-sm"
@@ -117,70 +117,146 @@
                 </div>
               </div>
 
+              <!-- Profile Dropdown -->
               <div class="nav-item dropdown">
                 <a
-                  class="nav-link dropdown-toggle"
+                  class="nav-link dropdown-toggle d-flex align-items-center profile-dropdown"
                   href="#"
                   id="userDropdown"
                   role="button"
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
                 >
-                  <i class="fas fa-user me-2"></i><span id="userName"></span>
-                  <span id="userStatus" class="badge bg-success ms-2"
-                    >Online</span
-                  >
+                  <div class="profile-avatar me-2">
+                    <div class="avatar-circle">
+                      <i class="fas fa-user"></i>
+                    </div>
+                    <div class="status-indicator" id="statusIndicator"></div>
+                  </div>
+                  <div class="profile-info d-none d-md-block">
+                    <div class="profile-name" id="userName"></div>
+                    <div class="profile-role" id="userRole"></div>
+                  </div>
+                  <i class="fas fa-chevron-down ms-2 dropdown-arrow"></i>
                 </a>
                 <ul
-                  class="dropdown-menu dropdown-menu-end"
+                  class="dropdown-menu dropdown-menu-end profile-menu"
                   aria-labelledby="userDropdown"
                 >
+                  <!-- Informações do Usuário -->
+                  <li class="dropdown-header">
+                    <div class="d-flex align-items-center">
+                      <div class="profile-avatar-large me-3">
+                        <div class="avatar-circle-large">
+                          <i class="fas fa-user"></i>
+                        </div>
+                        <div
+                          class="status-indicator-large"
+                          id="statusIndicatorDropdown"
+                        ></div>
+                      </div>
+                      <div>
+                        <div class="fw-bold" id="userNameDropdown"></div>
+                        <div
+                          class="text-muted small"
+                          id="userEmailDropdown"
+                        ></div>
+                        <div class="small">
+                          <span class="badge" id="userStatusBadge">Online</span>
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                  <li><hr class="dropdown-divider" /></li>
+
+                  <!-- Status Options -->
+                  <li class="dropdown-header small text-uppercase">
+                    <i class="fas fa-circle me-1"></i>Status
+                  </li>
                   <li>
                     <a
-                      class="dropdown-item"
+                      class="dropdown-item status-item"
                       href="#"
                       onclick="changeStatus('online')"
                     >
-                      <i class="fas fa-circle text-success me-2"></i>Online
+                      <i class="fas fa-circle text-success me-2"></i>
+                      <span>Online</span>
+                      <small class="text-muted ms-auto">Disponível</small>
                     </a>
                   </li>
                   <li>
                     <a
-                      class="dropdown-item"
+                      class="dropdown-item status-item"
                       href="#"
                       onclick="changeStatus('busy')"
                     >
-                      <i class="fas fa-circle text-warning me-2"></i>Ocupado
+                      <i class="fas fa-circle text-warning me-2"></i>
+                      <span>Ocupado</span>
+                      <small class="text-muted ms-auto">Não incomodar</small>
                     </a>
                   </li>
                   <li><hr class="dropdown-divider" /></li>
+
+                  <!-- Admin Options -->
                   <li id="adminMenuItems" class="d-none">
+                    <div class="dropdown-header small text-uppercase">
+                      <i class="fas fa-crown me-1"></i>Administração
+                    </div>
                     <a
                       class="dropdown-item"
                       href="#"
                       onclick="showAdminPanel()"
                     >
-                      <i class="fas fa-cog me-2"></i>Configurações
+                      <i class="fas fa-cog me-2 text-primary"></i>
+                      <span>Configurações</span>
                     </a>
-                  </li>
-                  <li id="adminMenuDivider" class="d-none">
+                    <a
+                      class="dropdown-item"
+                      href="#"
+                      onclick="showUserManagement()"
+                    >
+                      <i class="fas fa-users me-2 text-info"></i>
+                      <span>Usuários</span>
+                    </a>
                     <hr class="dropdown-divider" />
                   </li>
+
+                  <!-- User Actions -->
                   <li>
-                    <a class="dropdown-item" href="#" onclick="logout()">
-                      <i class="fas fa-sign-out-alt me-2"></i>Sair
+                    <a
+                      class="dropdown-item"
+                      href="#"
+                      onclick="showProfileSettings()"
+                    >
+                      <i class="fas fa-user-edit me-2 text-secondary"></i>
+                      <span>Editar Perfil</span>
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      class="dropdown-item"
+                      href="#"
+                      onclick="showNotificationSettings()"
+                    >
+                      <i class="fas fa-bell me-2 text-secondary"></i>
+                      <span>Notificações</span>
+                    </a>
+                  </li>
+                  <li><hr class="dropdown-divider" /></li>
+
+                  <!-- Logout -->
+                  <li>
+                    <a
+                      class="dropdown-item text-danger logout-item"
+                      href="#"
+                      onclick="logout()"
+                    >
+                      <i class="fas fa-sign-out-alt me-2"></i>
+                      <span>Sair da Conta</span>
                     </a>
                   </li>
                 </ul>
               </div>
-              <!-- Botão de logout adicional mais visível -->
-              <button
-                class="btn btn-outline-light btn-sm ms-2"
-                onclick="logout()"
-                title="Sair"
-              >
-                <i class="fas fa-sign-out-alt"></i>
-              </button>
             </div>
           </div>
         </nav>

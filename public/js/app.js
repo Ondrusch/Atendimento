@@ -211,7 +211,6 @@ function logout() {
 
     // Ocultar menus administrativos
     document.getElementById("adminMenuItems").classList.add("d-none");
-    document.getElementById("adminMenuDivider").classList.add("d-none");
 
     // Aguardar um pouco para suavidade
     setTimeout(() => {
@@ -256,12 +255,16 @@ function showMainInterface() {
 
   // Atualizar informações do usuário
   document.getElementById("userName").textContent = currentUser.name;
+  document.getElementById("userNameDropdown").textContent = currentUser.name;
+  document.getElementById("userEmailDropdown").textContent = currentUser.email;
+  document.getElementById("userRole").textContent = getRoleText(
+    currentUser.role
+  );
   updateUserStatus(currentUser.status || "online");
 
   // Mostrar menu administrativo se for admin
   if (currentUser.role === "admin") {
     document.getElementById("adminMenuItems").classList.remove("d-none");
-    document.getElementById("adminMenuDivider").classList.remove("d-none");
     document.getElementById("adminButtons").classList.remove("d-none");
   }
 
@@ -1026,7 +1029,12 @@ async function changeStatus(status) {
 }
 
 function updateUserStatus(status) {
-  const statusElement = document.getElementById("userStatus");
+  const statusElement = document.getElementById("userStatusBadge");
+  const statusIndicator = document.getElementById("statusIndicator");
+  const statusIndicatorDropdown = document.getElementById(
+    "statusIndicatorDropdown"
+  );
+
   const statusMap = {
     online: { text: "Online", class: "bg-success" },
     busy: { text: "Ocupado", class: "bg-warning" },
@@ -1034,8 +1042,21 @@ function updateUserStatus(status) {
   };
 
   const statusInfo = statusMap[status] || statusMap["offline"];
-  statusElement.textContent = statusInfo.text;
-  statusElement.className = `badge ms-2 ${statusInfo.class}`;
+
+  // Atualizar badge no dropdown
+  if (statusElement) {
+    statusElement.textContent = statusInfo.text;
+    statusElement.className = `badge ${statusInfo.class}`;
+  }
+
+  // Atualizar indicadores visuais
+  if (statusIndicator) {
+    statusIndicator.className = `status-indicator ${status}`;
+  }
+
+  if (statusIndicatorDropdown) {
+    statusIndicatorDropdown.className = `status-indicator-large ${status}`;
+  }
 }
 
 async function loadOnlineUsers() {
@@ -1763,4 +1784,34 @@ async function refreshConversations() {
       }, 500);
     }
   }
+}
+
+// ===== FUNÇÕES PLACEHOLDER PARA NOVAS OPÇÕES DO MENU =====
+
+function showProfileSettings() {
+  showNotification(
+    "Em Desenvolvimento",
+    "Configurações de perfil em desenvolvimento",
+    "info"
+  );
+}
+
+function showNotificationSettings() {
+  showNotification(
+    "Em Desenvolvimento",
+    "Configurações de notificações em desenvolvimento",
+    "info"
+  );
+}
+
+function showUserManagement() {
+  // Abrir o painel admin na aba de usuários
+  showAdminPanel();
+  // Ativar a aba de usuários
+  setTimeout(() => {
+    const usersTab = document.getElementById("users-tab");
+    if (usersTab) {
+      usersTab.click();
+    }
+  }, 100);
 }
