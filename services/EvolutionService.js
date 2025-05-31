@@ -361,6 +361,151 @@ class EvolutionService {
     }
   }
 
+  // Criar instância na Evolution API
+  async createInstance(instanceId, webhookUrl = null) {
+    try {
+      const data = {
+        instanceName: instanceId,
+        token: this.apiKey,
+        qrcode: true,
+        integration: "WHATSAPP-BAILEYS",
+      };
+
+      if (webhookUrl) {
+        data.webhook = {
+          url: webhookUrl,
+          events: [
+            "APPLICATION_STARTUP",
+            "QRCODE_UPDATED",
+            "CONNECTION_UPDATE",
+            "MESSAGES_UPSERT",
+            "MESSAGES_UPDATE",
+            "SEND_MESSAGE",
+          ],
+        };
+      }
+
+      const response = await this.axios.post(`/instance/create`, data);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error) {
+      console.error(
+        "Erro ao criar instância:",
+        error.response?.data || error.message
+      );
+      return {
+        success: false,
+        error: error.response?.data || error.message,
+      };
+    }
+  }
+
+  // Conectar instância (obter QR Code)
+  async connectInstance(instanceId) {
+    try {
+      const response = await this.axios.get(`/instance/connect/${instanceId}`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error) {
+      console.error(
+        "Erro ao conectar instância:",
+        error.response?.data || error.message
+      );
+      return {
+        success: false,
+        error: error.response?.data || error.message,
+      };
+    }
+  }
+
+  // Desconectar instância
+  async disconnectInstance(instanceId) {
+    try {
+      const response = await this.axios.delete(
+        `/instance/logout/${instanceId}`
+      );
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error) {
+      console.error(
+        "Erro ao desconectar instância:",
+        error.response?.data || error.message
+      );
+      return {
+        success: false,
+        error: error.response?.data || error.message,
+      };
+    }
+  }
+
+  // Deletar instância da Evolution API
+  async deleteInstance(instanceId) {
+    try {
+      const response = await this.axios.delete(
+        `/instance/delete/${instanceId}`
+      );
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error) {
+      console.error(
+        "Erro ao deletar instância:",
+        error.response?.data || error.message
+      );
+      return {
+        success: false,
+        error: error.response?.data || error.message,
+      };
+    }
+  }
+
+  // Listar todas as instâncias na Evolution API
+  async findInstances() {
+    try {
+      const response = await this.axios.get("/manager/findInstances");
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error) {
+      console.error(
+        "Erro ao listar instâncias:",
+        error.response?.data || error.message
+      );
+      return {
+        success: false,
+        error: error.response?.data || error.message,
+      };
+    }
+  }
+
+  // Reiniciar instância
+  async restartInstance(instanceId) {
+    try {
+      const response = await this.axios.put(`/instance/restart/${instanceId}`);
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error) {
+      console.error(
+        "Erro ao reiniciar instância:",
+        error.response?.data || error.message
+      );
+      return {
+        success: false,
+        error: error.response?.data || error.message,
+      };
+    }
+  }
+
   // Método estático para criar instância do serviço baseado na instância do banco
   static async createFromInstance(instanceId) {
     const instance = await Instance.findByInstanceId(instanceId);

@@ -8,6 +8,16 @@ let typingTimeout;
 
 // Inicialização da aplicação
 document.addEventListener("DOMContentLoaded", function () {
+  console.log("🚀 Iniciando aplicação...");
+
+  // Verificar se há token no localStorage
+  const token = localStorage.getItem("authToken");
+  if (token) {
+    console.log("🔑 Token encontrado no localStorage");
+  } else {
+    console.log("🔓 Nenhum token encontrado");
+  }
+
   initializeApp();
 });
 
@@ -142,6 +152,13 @@ async function verifyToken(token) {
   const minLoadingTime = 800; // Tempo mínimo de carregamento para suavidade
 
   try {
+    // Verificar se o token tem o formato básico de um JWT
+    if (!token || typeof token !== "string" || token.split(".").length !== 3) {
+      console.warn("⚠️ Token malformado detectado, removendo...");
+      localStorage.removeItem("authToken");
+      throw new Error("Token inválido");
+    }
+
     const response = await fetch("/api/auth/verify", {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -165,6 +182,7 @@ async function verifyToken(token) {
         loadConversations();
       }, remainingTime);
     } else {
+      console.warn("⚠️ Token inválido retornado pela API, removendo...");
       localStorage.removeItem("authToken");
 
       setTimeout(() => {
@@ -174,7 +192,12 @@ async function verifyToken(token) {
     }
   } catch (error) {
     console.error("Erro na verificação do token:", error);
-    localStorage.removeItem("authToken");
+
+    // Se o erro for relacionado a JWT malformado, limpar o localStorage
+    if (error.message.includes("jwt") || error.message.includes("Token")) {
+      console.warn("🧹 Limpando token corrompido...");
+      localStorage.removeItem("authToken");
+    }
 
     // Aguardar tempo mínimo mesmo em caso de erro
     const elapsed = Date.now() - startTime;
@@ -253,6 +276,9 @@ function showMainInterface() {
   document.getElementById("loginScreen").classList.add("d-none");
   document.getElementById("mainInterface").classList.remove("d-none");
 
+  console.log("👤 Usuário atual:", currentUser);
+  console.log("🎭 Role do usuário:", currentUser?.role);
+
   // Atualizar informações do usuário
   document.getElementById("userName").textContent = currentUser.name;
   document.getElementById("userNameDropdown").textContent = currentUser.name;
@@ -264,7 +290,11 @@ function showMainInterface() {
 
   // Mostrar menu administrativo se for admin
   if (currentUser.role === "admin") {
+    console.log("🔧 Exibindo menu administrativo para admin");
     document.getElementById("adminMenuItems").classList.remove("d-none");
+  } else {
+    console.log("🚫 Menu administrativo ocultado - usuário não é admin");
+    document.getElementById("adminMenuItems").classList.add("d-none");
   }
 
   // Mostrar dica sobre atalhos (apenas uma vez por sessão)
@@ -868,6 +898,15 @@ function getStatusText(status) {
   return statusMap[status] || status;
 }
 
+function getUserStatusText(status) {
+  const statusMap = {
+    online: "Online",
+    busy: "Ocupado",
+    offline: "Offline",
+  };
+  return statusMap[status] || "Offline";
+}
+
 function getMessageStatusIcon(status) {
   const iconMap = {
     sent: '<i class="fas fa-check"></i>',
@@ -1244,9 +1283,42 @@ function showAddEvolutionConfig() {
   modal.show();
 }
 
-function editEvolutionConfig(id) {
-  // Implementar edição
-  console.log("Editar config:", id);
+async function editEvolutionConfig(id) {
+  try {
+    // Buscar dados da configuração
+    const response = await fetch(`/api/admin/evolution-configs/${id}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      const config = data.data;
+
+      // Preencher formulário
+      document.getElementById("evolutionConfigModalTitle").textContent =
+        "Editar Configuração Evolution API";
+      document.getElementById("evolutionConfigId").value = config.id;
+      document.getElementById("evolutionConfigName").value = config.name;
+      document.getElementById("evolutionConfigUrl").value = config.server_url;
+      document.getElementById("evolutionConfigKey").value = config.api_key;
+      document.getElementById("evolutionConfigWebhook").value =
+        config.webhook_url || "";
+
+      // Mostrar modal
+      const modal = new bootstrap.Modal(
+        document.getElementById("evolutionConfigModal")
+      );
+      modal.show();
+    } else {
+      showNotification("Erro", "Erro ao carregar configuração", "danger");
+    }
+  } catch (error) {
+    console.error("Erro ao editar configuração:", error);
+    showNotification("Erro", "Erro ao carregar configuração", "danger");
+  }
 }
 
 async function saveEvolutionConfig() {
@@ -1310,6 +1382,8 @@ async function testEvolutionConfig(id) {
         "Conexão estabelecida com sucesso",
         "success"
       );
+      // Recarregar a lista para mostrar a configuração como ativa
+      loadEvolutionConfigs();
     } else {
       showNotification(
         "Erro",
@@ -1408,22 +1482,47 @@ function renderInstances(instances) {
               ${instance.is_active ? "Ativa" : "Inativa"}
             </span>
           </div>
-          <div class="btn-group btn-group-sm">
-            <button class="btn btn-outline-primary" onclick="editInstance('${
-              instance.id
-            }')">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button class="btn btn-outline-warning" onclick="toggleInstance('${
-              instance.id
-            }')">
-              <i class="fas fa-power-off"></i>
-            </button>
-            <button class="btn btn-outline-danger" onclick="deleteInstance('${
-              instance.id
-            }')">
-              <i class="fas fa-trash"></i>
-            </button>
+          <div>
+            <!-- Primeira linha de botões -->
+            <div class="btn-group btn-group-sm mb-2">
+              <button class="btn btn-outline-primary" onclick="editInstance('${
+                instance.id
+              }')" title="Editar">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn btn-outline-${
+                instance.is_active ? "warning" : "success"
+              }" onclick="toggleInstance('${instance.id}')" title="${
+        instance.is_active ? "Desativar" : "Ativar"
+      }">
+                <i class="fas fa-power-off"></i>
+              </button>
+              <button class="btn btn-outline-danger" onclick="deleteInstance('${
+                instance.id
+              }')" title="Excluir">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+            <!-- Segunda linha de botões - apenas se ativa -->
+            ${
+              instance.is_active
+                ? `
+            <div class="btn-group btn-group-sm">
+              <button class="btn btn-outline-info" onclick="connectInstance('${instance.id}')" title="Conectar/QR Code">
+                <i class="fas fa-qrcode"></i>
+              </button>
+              <button class="btn btn-outline-secondary" onclick="checkInstanceStatus('${instance.id}')" title="Verificar Status">
+                <i class="fas fa-signal"></i>
+              </button>
+              <button class="btn btn-outline-warning" onclick="disconnectInstance('${instance.id}')" title="Desconectar">
+                <i class="fas fa-unlink"></i>
+              </button>
+              <button class="btn btn-outline-primary" onclick="restartInstance('${instance.id}')" title="Reiniciar">
+                <i class="fas fa-redo"></i>
+              </button>
+            </div>`
+                : ""
+            }
           </div>
         </div>
       </div>
@@ -1431,6 +1530,233 @@ function renderInstances(instances) {
   `
     )
     .join("");
+}
+
+// Conectar instância (obter QR Code)
+async function connectInstance(id) {
+  try {
+    const response = await fetch(`/api/admin/instances/${id}/connect`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      // Se há QR code, mostrar em modal
+      if (data.data && data.data.qrcode) {
+        showQRCodeModal(
+          data.data.qrcode,
+          data.data.instanceName || "Instância"
+        );
+      } else {
+        showNotification("Sucesso", data.message, "success");
+      }
+    } else {
+      showNotification("Erro", data.message || data.error, "danger");
+    }
+  } catch (error) {
+    console.error("Erro ao conectar instância:", error);
+    showNotification("Erro", "Erro ao conectar instância", "danger");
+  }
+}
+
+// Desconectar instância
+async function disconnectInstance(id) {
+  if (!confirm("Tem certeza que deseja desconectar esta instância?")) return;
+
+  try {
+    const response = await fetch(`/api/admin/instances/${id}/disconnect`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      showNotification("Sucesso", data.message, "success");
+    } else {
+      showNotification("Erro", data.message || data.error, "danger");
+    }
+  } catch (error) {
+    console.error("Erro ao desconectar instância:", error);
+    showNotification("Erro", "Erro ao desconectar instância", "danger");
+  }
+}
+
+// Verificar status da instância
+async function checkInstanceStatus(id) {
+  try {
+    const response = await fetch(`/api/admin/instances/${id}/status`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      const status = data.data;
+      showInstanceStatusModal(status);
+    } else {
+      showNotification("Erro", data.error, "danger");
+    }
+  } catch (error) {
+    console.error("Erro ao verificar status:", error);
+    showNotification("Erro", "Erro ao verificar status da instância", "danger");
+  }
+}
+
+// Reiniciar instância
+async function restartInstance(id) {
+  if (!confirm("Tem certeza que deseja reiniciar esta instância?")) return;
+
+  try {
+    const response = await fetch(`/api/admin/instances/${id}/restart`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      showNotification("Sucesso", data.message, "success");
+    } else {
+      showNotification("Erro", data.message || data.error, "danger");
+    }
+  } catch (error) {
+    console.error("Erro ao reiniciar instância:", error);
+    showNotification("Erro", "Erro ao reiniciar instância", "danger");
+  }
+}
+
+// Mostrar QR Code em modal
+function showQRCodeModal(qrcode, instanceName) {
+  // Criar modal dinamicamente
+  const modalId = "qrcodeModal";
+  let modal = document.getElementById(modalId);
+
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = modalId;
+    modal.className = "modal fade";
+    modal.tabIndex = -1;
+    modal.innerHTML = `
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">QR Code - ${instanceName}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body text-center">
+            <p class="mb-3">Escaneie o QR Code com o WhatsApp para conectar a instância:</p>
+            <div id="qrcodeContainer"></div>
+            <p class="mt-3 text-muted">
+              <small>O QR Code expira em alguns minutos. Se não funcionar, tente gerar novamente.</small>
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            <button type="button" class="btn btn-primary" onclick="connectInstance('${instanceName}')">Gerar Novo QR</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  // Atualizar conteúdo
+  const container = modal.querySelector("#qrcodeContainer");
+  container.innerHTML = `<img src="${qrcode}" alt="QR Code" class="img-fluid" style="max-width: 300px;">`;
+
+  // Mostrar modal
+  const bsModal = new bootstrap.Modal(modal);
+  bsModal.show();
+}
+
+// Mostrar status da instância em modal
+function showInstanceStatusModal(status) {
+  const modalId = "statusModal";
+  let modal = document.getElementById(modalId);
+
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = modalId;
+    modal.className = "modal fade";
+    modal.tabIndex = -1;
+    modal.innerHTML = `
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Status da Instância</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div id="statusContent"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  // Atualizar conteúdo
+  const container = modal.querySelector("#statusContent");
+
+  let statusClass = "secondary";
+  let statusText = "Desconhecido";
+
+  if (status.state) {
+    switch (status.state.toLowerCase()) {
+      case "open":
+        statusClass = "success";
+        statusText = "Conectado";
+        break;
+      case "connecting":
+        statusClass = "warning";
+        statusText = "Conectando";
+        break;
+      case "close":
+        statusClass = "danger";
+        statusText = "Desconectado";
+        break;
+    }
+  }
+
+  container.innerHTML = `
+    <div class="row">
+      <div class="col-md-6">
+        <strong>Estado:</strong>
+      </div>
+      <div class="col-md-6">
+        <span class="badge bg-${statusClass}">${statusText}</span>
+      </div>
+    </div>
+    <hr>
+    <div class="row">
+      <div class="col-12">
+        <strong>Detalhes:</strong>
+        <pre class="mt-2 p-2 bg-light rounded"><code>${JSON.stringify(
+          status,
+          null,
+          2
+        )}</code></pre>
+      </div>
+    </div>
+  `;
+
+  // Mostrar modal
+  const bsModal = new bootstrap.Modal(modal);
+  bsModal.show();
 }
 
 async function showAddInstance() {
@@ -1514,8 +1840,108 @@ async function saveInstance() {
   }
 }
 
-function editInstance(id) {
-  console.log("Editar instância:", id);
+async function editInstance(id) {
+  try {
+    // Carregar configurações para o select
+    await loadEvolutionConfigsForSelect();
+
+    // Buscar dados da instância
+    const response = await fetch(`/api/admin/instances/${id}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      const instance = data.data;
+
+      // Preencher formulário
+      document.getElementById("instanceModalTitle").textContent =
+        "Editar Instância";
+      document.getElementById("instanceId").value = instance.id;
+      document.getElementById("instanceName").value = instance.name;
+      document.getElementById("instanceInstanceId").value =
+        instance.instance_id;
+      document.getElementById("instanceConfigId").value =
+        instance.evolution_config_id;
+
+      // Mostrar modal
+      const modal = new bootstrap.Modal(
+        document.getElementById("instanceModal")
+      );
+      modal.show();
+
+      // Aguardar o modal estar totalmente carregado e preencher novamente
+      setTimeout(() => {
+        console.log("🔄 Preenchendo campos após modal carregado...");
+        fillUserModal(instance);
+
+        // Monitoramento contínuo para garantir que os valores permaneçam
+        let attempts = 0;
+        const maxAttempts = 10;
+
+        const monitor = setInterval(() => {
+          attempts++;
+          const nameField = document.getElementById("instanceName");
+          const roleField = document.getElementById("instanceConfigId");
+
+          let needsRefill = false;
+
+          // Verificar se campos estão vazios visualmente
+          if (
+            nameField &&
+            (!nameField.value || nameField.value.trim() === "")
+          ) {
+            console.log(
+              `🔥 Tentativa ${attempts}: Campo nome vazio, preenchendo...`
+            );
+            nameField.value = instance.name;
+            nameField.defaultValue = instance.name;
+            nameField.setAttribute("value", instance.name);
+            needsRefill = true;
+          }
+
+          if (roleField && (!roleField.value || roleField.value === "")) {
+            console.log(
+              `🔥 Tentativa ${attempts}: Campo função vazio, preenchendo...`
+            );
+            roleField.value = instance.evolution_config_id;
+            roleField.selectedIndex = Array.from(roleField.options).findIndex(
+              (option) => option.value === instance.evolution_config_id
+            );
+            needsRefill = true;
+          }
+
+          if (!needsRefill || attempts >= maxAttempts) {
+            console.log(
+              attempts >= maxAttempts
+                ? "⏰ Limite de tentativas atingido"
+                : "✅ Campos preenchidos com sucesso"
+            );
+            clearInterval(monitor);
+          }
+        }, 200); // Verificar a cada 200ms
+      }, 100);
+
+      console.log("🎯 Modal exibido com sucesso");
+    } else {
+      console.error("❌ Erro na resposta da API:", data.message);
+      showNotification(
+        "Erro",
+        data.message || "Erro ao carregar instância",
+        "danger"
+      );
+    }
+  } catch (error) {
+    console.error("💥 Erro ao editar instância:", error);
+    showNotification(
+      "Erro",
+      `Erro ao carregar instância: ${error.message}`,
+      "danger"
+    );
+  }
 }
 
 async function toggleInstance(id) {
@@ -1532,6 +1958,17 @@ async function toggleInstance(id) {
     if (data.success) {
       loadInstances();
       showNotification("Sucesso", data.message, "success");
+
+      // Mostrar informações sobre a Evolution API se houver
+      if (data.evolutionApiResult && !data.evolutionApiResult.success) {
+        setTimeout(() => {
+          showNotification(
+            "Aviso",
+            `Evolution API: ${data.evolutionApiResult.error}`,
+            "warning"
+          );
+        }, 1000);
+      }
     } else {
       showNotification("Erro", data.message, "danger");
     }
@@ -1604,7 +2041,7 @@ function renderUsers(users) {
               )}</small>
             </p>
             <span class="badge ${getStatusBadgeClass(user.status)}">
-              ${getStatusText(user.status)}
+              ${getUserStatusText(user.status)}
             </span>
           </div>
           <div class="btn-group btn-group-sm">
@@ -1653,12 +2090,134 @@ function showAddUser() {
   document.getElementById("passwordField").style.display = "block";
   document.getElementById("userPassword").required = true;
 
+  // Restaurar texto original do label da senha
+  const passwordLabel = document.querySelector('label[for="userPassword"]');
+  passwordLabel.textContent = "Senha";
+
   const modal = new bootstrap.Modal(document.getElementById("userModal"));
   modal.show();
 }
 
-function editUser(id) {
-  console.log("Editar usuário:", id);
+async function editUser(id) {
+  console.log("🔍 Editando usuário ID:", id);
+
+  try {
+    // Buscar dados do usuário
+    const response = await fetch(`/api/admin/users/${id}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+      },
+    });
+
+    console.log("📡 Resposta da API:", response.status);
+
+    const data = await response.json();
+    console.log("📄 Dados recebidos:", data);
+
+    if (data.success) {
+      const user = data.data;
+      console.log("👤 Dados do usuário:", user);
+
+      // Verificar se todos os campos existem
+      if (!user || !user.id) {
+        throw new Error("Dados do usuário inválidos");
+      }
+
+      // Verificar se os elementos DOM existem
+      const elements = {
+        title: document.getElementById("userModalTitle"),
+        userId: document.getElementById("userId"),
+        userName: document.getElementById("userName"),
+        userEmail: document.getElementById("userEmail"),
+        userRole: document.getElementById("userRole"),
+        userPassword: document.getElementById("userPassword"),
+        passwordField: document.getElementById("passwordField"),
+      };
+
+      console.log("🔍 Verificando elementos DOM:");
+      Object.keys(elements).forEach((key) => {
+        console.log(
+          `  ${key}:`,
+          elements[key] ? "✅ Encontrado" : "❌ Não encontrado"
+        );
+      });
+
+      // Preencher formulário usando a função robusta
+      fillUserModal(user);
+
+      // Mostrar modal
+      const modal = new bootstrap.Modal(document.getElementById("userModal"));
+      modal.show();
+
+      // Aguardar o modal estar totalmente carregado e preencher novamente
+      setTimeout(() => {
+        console.log("🔄 Preenchendo campos após modal carregado...");
+        fillUserModal(user);
+
+        // Monitoramento contínuo para garantir que os valores permaneçam
+        let attempts = 0;
+        const maxAttempts = 10;
+
+        const monitor = setInterval(() => {
+          attempts++;
+          const nameField = document.getElementById("userName");
+          const roleField = document.getElementById("userRole");
+
+          let needsRefill = false;
+
+          // Verificar se campos estão vazios visualmente
+          if (
+            nameField &&
+            (!nameField.value || nameField.value.trim() === "")
+          ) {
+            console.log(
+              `🔥 Tentativa ${attempts}: Campo nome vazio, preenchendo...`
+            );
+            nameField.value = user.name;
+            nameField.defaultValue = user.name;
+            nameField.setAttribute("value", user.name);
+            needsRefill = true;
+          }
+
+          if (roleField && (!roleField.value || roleField.value === "")) {
+            console.log(
+              `🔥 Tentativa ${attempts}: Campo função vazio, preenchendo...`
+            );
+            roleField.value = user.role;
+            roleField.selectedIndex = Array.from(roleField.options).findIndex(
+              (option) => option.value === user.role
+            );
+            needsRefill = true;
+          }
+
+          if (!needsRefill || attempts >= maxAttempts) {
+            console.log(
+              attempts >= maxAttempts
+                ? "⏰ Limite de tentativas atingido"
+                : "✅ Campos preenchidos com sucesso"
+            );
+            clearInterval(monitor);
+          }
+        }, 200); // Verificar a cada 200ms
+      }, 100);
+
+      console.log("🎯 Modal exibido com sucesso");
+    } else {
+      console.error("❌ Erro na resposta da API:", data.message);
+      showNotification(
+        "Erro",
+        data.message || "Erro ao carregar usuário",
+        "danger"
+      );
+    }
+  } catch (error) {
+    console.error("💥 Erro ao editar usuário:", error);
+    showNotification(
+      "Erro",
+      `Erro ao carregar usuário: ${error.message}`,
+      "danger"
+    );
+  }
 }
 
 async function saveUser() {
@@ -1814,3 +2373,478 @@ function showUserManagement() {
     }
   }, 100);
 }
+
+// Função para limpar dados corrompidos (pode ser chamada manualmente no console)
+window.clearAuthData = function () {
+  console.log("🧹 Limpando todos os dados de autenticação...");
+  localStorage.removeItem("authToken");
+  sessionStorage.clear();
+  location.reload();
+};
+
+// Função para forçar refresh dos campos do modal
+window.forceRefreshModal = function () {
+  console.log("🔄 Forçando refresh do modal de usuário...");
+  const modal = document.getElementById("userModal");
+  if (modal) {
+    // Remover e recriar o modal
+    modal.style.display = "none";
+    setTimeout(() => {
+      modal.style.display = "block";
+      // Recarregar a página se necessário
+      if (confirm("Recarregar página para limpar cache?")) {
+        location.reload();
+      }
+    }, 100);
+  }
+};
+
+// Função de teste manual para o modal
+window.testFillModal = function () {
+  const testUser = {
+    id: "471f2fa5-589f-4615-a308-c10bfc25ccb6",
+    name: "Administrador",
+    email: "admin@sistema.com",
+    role: "admin",
+  };
+
+  console.log("🧪 Testando preenchimento manual do modal...");
+  fillUserModal(testUser);
+
+  // Abrir o modal se não estiver aberto
+  const modal = new bootstrap.Modal(document.getElementById("userModal"));
+  modal.show();
+};
+
+// Função para debug avançado do modal
+window.debugModal = function () {
+  console.log("🔍 DEBUG AVANÇADO DO MODAL:");
+
+  const elements = ["userName", "userEmail", "userRole", "userPassword"];
+
+  elements.forEach((id) => {
+    const element = document.getElementById(id);
+    if (element) {
+      console.log(`📋 ${id}:`, {
+        exists: !!element,
+        value: element.value,
+        defaultValue: element.defaultValue,
+        placeholder: element.placeholder,
+        disabled: element.disabled,
+        readonly: element.readOnly,
+        style: element.style.display,
+        className: element.className,
+        tagName: element.tagName,
+      });
+    } else {
+      console.log(`❌ ${id}: não encontrado`);
+    }
+  });
+
+  // Verificar se há formulários que podem estar interferindo
+  const forms = document.querySelectorAll("form");
+  console.log("📄 Formulários encontrados:", forms.length);
+
+  // Tentar preencher manualmente via console
+  console.log("🔧 Tentando preencher manualmente...");
+  const nameField = document.getElementById("userName");
+  if (nameField) {
+    nameField.value = "TESTE MANUAL";
+    console.log("Nome definido como:", nameField.value);
+  }
+};
+
+// Função para interceptar modificações nos campos
+window.watchFieldChanges = function () {
+  console.log("👁️ Iniciando monitoramento de mudanças nos campos...");
+
+  const nameField = document.getElementById("userName");
+  const emailField = document.getElementById("userEmail");
+  const roleField = document.getElementById("userRole");
+
+  if (nameField) {
+    // Interceptar qualquer tentativa de modificar o campo
+    const originalValueSetter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value"
+    ).set;
+
+    Object.defineProperty(nameField, "value", {
+      get: function () {
+        return this.getAttribute("value") || "";
+      },
+      set: function (val) {
+        console.log(`🔍 Campo userName sendo alterado para: "${val}"`);
+        console.trace("Stack trace da alteração:");
+        this.setAttribute("value", val);
+        originalValueSetter.call(this, val);
+      },
+    });
+  }
+
+  // Detectar resets de formulário
+  const forms = document.querySelectorAll("form");
+  forms.forEach((form, index) => {
+    const originalReset = form.reset;
+    form.reset = function () {
+      console.log(`🚨 FORMULÁRIO ${index} SENDO RESETADO!`);
+      console.trace("Stack trace do reset:");
+      return originalReset.call(this);
+    };
+  });
+
+  // Interceptar eventos do Bootstrap Modal
+  const userModal = document.getElementById("userModal");
+  if (userModal) {
+    userModal.addEventListener("shown.bs.modal", function () {
+      console.log("🎭 Bootstrap Modal totalmente carregado");
+    });
+
+    userModal.addEventListener("hide.bs.modal", function () {
+      console.log("🎭 Bootstrap Modal sendo fechado");
+    });
+
+    userModal.addEventListener("hidden.bs.modal", function () {
+      console.log("🎭 Bootstrap Modal fechado completamente");
+    });
+  }
+};
+
+// Função de solução de emergência - sobrescrever HTML diretamente
+window.emergencyFillModal = function () {
+  console.log("🚨 SOLUÇÃO DE EMERGÊNCIA - Sobrescrevendo HTML diretamente");
+
+  const nameField = document.getElementById("userName");
+  const emailField = document.getElementById("userEmail");
+  const roleField = document.getElementById("userRole");
+
+  if (nameField) {
+    nameField.outerHTML =
+      '<input type="text" class="form-control" id="userName" value="Administrador" required>';
+  }
+
+  if (emailField) {
+    emailField.outerHTML =
+      '<input type="email" class="form-control" id="userEmail" value="admin@sistema.com" required>';
+  }
+
+  if (roleField) {
+    roleField.outerHTML = `
+      <select class="form-select" id="userRole" required>
+        <option value="atendente">Atendente</option>
+        <option value="supervisor">Supervisor</option>
+        <option value="admin" selected>Administrador</option>
+      </select>
+    `;
+  }
+
+  console.log("✅ HTML sobrescrito diretamente");
+};
+
+// Função específica para diagnosticar o campo SELECT
+window.diagnosticSelectRole = function () {
+  console.log("🔍 DIAGNÓSTICO ESPECÍFICO DO CAMPO FUNÇÃO:");
+
+  const roleField = document.getElementById("userRole");
+
+  if (!roleField) {
+    console.error("❌ Campo userRole não encontrado!");
+    return;
+  }
+
+  console.log(`📋 Informações do SELECT:`);
+  console.log(`   TagName: ${roleField.tagName}`);
+  console.log(`   Valor atual: "${roleField.value}"`);
+  console.log(`   Número de opções: ${roleField.options.length}`);
+  console.log(`   Índice selecionado: ${roleField.selectedIndex}`);
+  console.log(`   Disabled: ${roleField.disabled}`);
+  console.log(`   ReadOnly: ${roleField.readOnly}`);
+  console.log(`   ID: ${roleField.id}`);
+  console.log(`   Classes: ${roleField.className}`);
+
+  console.log(`📄 TODAS AS OPÇÕES:`);
+  Array.from(roleField.options).forEach((option, index) => {
+    console.log(
+      `   [${index}] value: "${option.value}" | text: "${option.text}" | selected: ${option.selected}`
+    );
+  });
+
+  // Tentar encontrar a opção "admin"
+  const adminOption = Array.from(roleField.options).find(
+    (opt) => opt.value === "admin"
+  );
+  if (adminOption) {
+    console.log(`✅ Opção "admin" encontrada no índice: ${adminOption.index}`);
+  } else {
+    console.log(`❌ Opção "admin" NÃO encontrada!`);
+    console.log(
+      `📝 Opções disponíveis: ${Array.from(roleField.options)
+        .map((opt) => opt.value)
+        .join(", ")}`
+    );
+  }
+
+  return roleField;
+};
+
+// Função para diagnosticar dados da API vs campos do formulário
+window.diagnosticUserData = function () {
+  console.log("🔍 DIAGNÓSTICO COMPLETO DOS DADOS DO USUÁRIO:");
+
+  // Pegar dados dos últimos logs (se disponível)
+  console.log("📡 Verificando dados da API vs campos do formulário...");
+
+  // Verificar campos atuais
+  const nameField = document.getElementById("userName");
+  const emailField = document.getElementById("userEmail");
+  const roleField = document.getElementById("userRole");
+
+  console.log("📋 ESTADO ATUAL DOS CAMPOS:");
+  console.log(`   Campo Nome: "${nameField?.value || "NÃO ENCONTRADO"}"`);
+  console.log(`   Campo Email: "${emailField?.value || "NÃO ENCONTRADO"}"`);
+  console.log(`   Campo Função: "${roleField?.value || "NÃO ENCONTRADO"}"`);
+
+  if (roleField && roleField.tagName === "SELECT") {
+    console.log(
+      `   Função - Texto selecionado: "${
+        roleField.options[roleField.selectedIndex]?.text || "NENHUMA"
+      }"`
+    );
+  }
+
+  // Verificar se há dados na memória
+  if (window.lastUserData) {
+    console.log("💾 DADOS SALVOS NA MEMÓRIA:");
+    console.log(window.lastUserData);
+  }
+
+  // Função para capturar próximos dados da API
+  console.log(
+    "🎯 Para capturar dados da próxima edição, use: captureUserData()"
+  );
+};
+
+// Função para capturar dados da API na próxima edição
+window.captureUserData = function () {
+  console.log(
+    "🎯 Monitoramento de dados ativado - edite um usuário para ver os dados da API"
+  );
+
+  // Interceptar função fillUserModal
+  const originalFillUserModal = fillUserModal;
+
+  fillUserModal = function (user) {
+    console.log("📡 DADOS RECEBIDOS DA API:");
+    console.log("Raw data:", user);
+    console.log("=====================================");
+    console.log(`🏷️  ID: ${user.id}`);
+    console.log(`👤 Nome: "${user.name}"`);
+    console.log(`📧 Email: "${user.email}"`);
+    console.log(`🎭 Role: "${user.role}"`);
+    console.log(`📊 Status: "${user.status}"`);
+    console.log("=====================================");
+
+    // Salvar dados para análise
+    window.lastUserData = user;
+
+    // Verificar mapeamento de função para texto
+    const roleMap = {
+      admin: "Administrador",
+      supervisor: "Supervisor",
+      atendente: "Atendente",
+    };
+
+    console.log("🔄 MAPEAMENTO ESPERADO:");
+    console.log(
+      `   Role "${user.role}" deveria mapear para texto: "${
+        roleMap[user.role] || "DESCONHECIDO"
+      }"`
+    );
+
+    // Verificar se há confusão entre nome e função
+    if (user.name === roleMap[user.role]) {
+      console.log(
+        "🚨 PROBLEMA DETECTADO: Nome do usuário é igual ao texto da função!"
+      );
+      console.log(
+        "   Isso indica que há confusão entre nome real e função no banco de dados"
+      );
+    }
+
+    // Chamar função original
+    return originalFillUserModal.call(this, user);
+  };
+
+  console.log(
+    "✅ Monitoramento ativado - agora edite um usuário para ver os dados"
+  );
+};
+
+// Função específica para preencher modal de usuário (versão simplificada)
+function fillUserModal(user) {
+  console.log("🎯 Preenchendo modal com dados:", user);
+
+  try {
+    const elements = {
+      title: document.getElementById("userModalTitle"),
+      userId: document.getElementById("userId"),
+      userName: document.getElementById("userName"),
+      userEmail: document.getElementById("userEmail"),
+      userRole: document.getElementById("userRole"),
+      userPassword: document.getElementById("userPassword"),
+    };
+
+    if (elements.title) elements.title.textContent = "Editar Usuário";
+    if (elements.userId) elements.userId.value = user.id || "";
+    if (elements.userName) elements.userName.value = user.name || "";
+    if (elements.userEmail) elements.userEmail.value = user.email || "";
+    if (elements.userPassword) elements.userPassword.value = "";
+
+    // Tratamento especial para o campo função
+    if (elements.userRole) {
+      console.log("🎭 Processando campo função...");
+
+      // Verificar se SELECT tem opções
+      if (elements.userRole.options.length === 0) {
+        console.log("⚠️ SELECT vazio detectado, recriando opções...");
+
+        // Recriar opções
+        const options = [
+          { value: "atendente", text: "Atendente" },
+          { value: "supervisor", text: "Supervisor" },
+          { value: "admin", text: "Administrador" },
+        ];
+
+        options.forEach((opt) => {
+          const option = document.createElement("option");
+          option.value = opt.value;
+          option.textContent = opt.text;
+          elements.userRole.appendChild(option);
+        });
+
+        console.log("✅ Opções recriadas no SELECT");
+      }
+
+      // Definir valor
+      elements.userRole.value = user.role || "atendente";
+
+      // Garantir que a opção está selecionada
+      Array.from(elements.userRole.options).forEach((option) => {
+        option.selected = option.value === (user.role || "atendente");
+      });
+
+      console.log(`🎭 Função definida como: "${elements.userRole.value}"`);
+    }
+
+    // Configurar senha como opcional
+    if (elements.userPassword) {
+      elements.userPassword.required = false;
+    }
+
+    // Atualizar label da senha
+    const passwordLabel = document.querySelector('label[for="userPassword"]');
+    if (passwordLabel) {
+      passwordLabel.textContent =
+        "Nova Senha (deixe em branco para manter a atual)";
+    }
+
+    console.log("✅ Modal preenchido com método padrão");
+  } catch (error) {
+    console.error("❌ Erro no preenchimento padrão:", error);
+  }
+}
+
+// Função para forçar seleção no campo SELECT
+window.forceSelectRole = function () {
+  console.log("🔨 FORÇANDO SELEÇÃO NO CAMPO FUNÇÃO:");
+
+  const roleField = document.getElementById("userRole");
+  if (!roleField) {
+    console.error("❌ Campo userRole não encontrado!");
+    return;
+  }
+
+  // Método 1: Verificar se tem opções
+  console.log(`📊 Opções atuais: ${roleField.options.length}`);
+
+  // Se não tem opções, recriar o SELECT
+  if (roleField.options.length === 0) {
+    console.log("🔄 SELECT vazio detectado, recriando opções...");
+
+    // Limpar SELECT
+    roleField.innerHTML = "";
+
+    // Recriar opções
+    const options = [
+      { value: "atendente", text: "Atendente" },
+      { value: "supervisor", text: "Supervisor" },
+      { value: "admin", text: "Administrador" },
+    ];
+
+    options.forEach((opt) => {
+      const option = document.createElement("option");
+      option.value = opt.value;
+      option.textContent = opt.text;
+      roleField.appendChild(option);
+      console.log(`➕ Opção adicionada: ${opt.value} -> ${opt.text}`);
+    });
+  }
+
+  // Método 2: Definir value diretamente
+  console.log("🔄 Método 1: Definindo value diretamente...");
+  roleField.value = "admin";
+  console.log(
+    `   Resultado: "${roleField.value}" (índice: ${roleField.selectedIndex})`
+  );
+
+  // Método 3: Definir selectedIndex
+  console.log("🔄 Método 2: Definindo selectedIndex...");
+  const adminOption = Array.from(roleField.options).find(
+    (opt) => opt.value === "admin"
+  );
+  if (adminOption) {
+    roleField.selectedIndex = adminOption.index;
+    console.log(
+      `   Resultado: "${roleField.value}" (índice: ${roleField.selectedIndex})`
+    );
+  } else {
+    console.log("   ❌ Opção admin não encontrada mesmo após recriar");
+  }
+
+  // Método 4: Marcar option.selected
+  console.log("🔄 Método 3: Marcando option.selected...");
+  Array.from(roleField.options).forEach((option) => {
+    option.selected = option.value === "admin";
+    if (option.value === "admin") {
+      console.log(`   ✅ Opção admin marcada como selected`);
+    }
+  });
+  console.log(
+    `   Resultado: "${roleField.value}" (índice: ${roleField.selectedIndex})`
+  );
+
+  // Método 5: Forçar via CSS também
+  console.log("🔄 Método 4: Aplicando estilos visuais...");
+  roleField.style.color = "black";
+  roleField.style.backgroundColor = "white";
+
+  // Método 6: Disparar eventos
+  console.log("🔄 Método 5: Disparando eventos...");
+  roleField.dispatchEvent(new Event("change", { bubbles: true }));
+  roleField.dispatchEvent(new Event("input", { bubbles: true }));
+
+  // Verificação final
+  setTimeout(() => {
+    console.log("🔍 VERIFICAÇÃO FINAL:");
+    console.log(`   Valor: "${roleField.value}"`);
+    console.log(`   Índice: ${roleField.selectedIndex}`);
+    console.log(`   Opções: ${roleField.options.length}`);
+    console.log(
+      `   Texto selecionado: "${
+        roleField.options[roleField.selectedIndex]?.text || "NENHUM"
+      }"`
+    );
+  }, 100);
+
+  return roleField;
+};

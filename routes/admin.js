@@ -1,7 +1,9 @@
 const express = require("express");
+const axios = require("axios");
 const User = require("../models/User");
 const EvolutionConfig = require("../models/EvolutionConfig");
 const Instance = require("../models/Instance");
+const EvolutionService = require("../services/EvolutionService");
 const ContactProfileService = require("../services/ContactProfileService");
 const {
   authMiddleware,
@@ -29,6 +31,39 @@ router.get("/users", authMiddleware, supervisorMiddleware, async (req, res) => {
     });
   }
 });
+
+// Buscar usuário específico
+router.get(
+  "/users/:id",
+  authMiddleware,
+  supervisorMiddleware,
+  async (req, res) => {
+    try {
+      const user = await User.findById(req.params.id);
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "Usuário não encontrado",
+        });
+      }
+
+      // Não retornar a senha
+      delete user.password;
+
+      res.json({
+        success: true,
+        data: user,
+      });
+    } catch (error) {
+      console.error("Erro ao buscar usuário:", error);
+      res.status(500).json({
+        success: false,
+        message: "Erro interno do servidor",
+      });
+    }
+  }
+);
 
 // Criar usuário
 router.post("/users", authMiddleware, adminMiddleware, async (req, res) => {
@@ -70,14 +105,22 @@ router.post("/users", authMiddleware, adminMiddleware, async (req, res) => {
 // Atualizar usuário
 router.put("/users/:id", authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    const { name, email, role, avatar_url } = req.body;
+    const { name, email, role, avatar_url, password } = req.body;
 
-    const user = await User.update(req.params.id, {
+    // Preparar dados para atualização
+    const updateData = {
       name,
       email,
       role,
       avatar_url,
-    });
+    };
+
+    // Se senha foi fornecida, incluir na atualização
+    if (password && password.trim() !== "") {
+      updateData.password = password;
+    }
+
+    const user = await User.update(req.params.id, updateData);
 
     if (!user) {
       return res.status(404).json({
@@ -156,6 +199,36 @@ router.get(
       });
     } catch (error) {
       console.error("Erro ao listar configurações:", error);
+      res.status(500).json({
+        success: false,
+        message: "Erro interno do servidor",
+      });
+    }
+  }
+);
+
+// Buscar configuração específica
+router.get(
+  "/evolution-configs/:id",
+  authMiddleware,
+  adminMiddleware,
+  async (req, res) => {
+    try {
+      const config = await EvolutionConfig.findById(req.params.id);
+
+      if (!config) {
+        return res.status(404).json({
+          success: false,
+          message: "Configuração não encontrada",
+        });
+      }
+
+      res.json({
+        success: true,
+        data: config,
+      });
+    } catch (error) {
+      console.error("Erro ao buscar configuração:", error);
       res.status(500).json({
         success: false,
         message: "Erro interno do servidor",
@@ -264,21 +337,60 @@ router.delete(
   }
 );
 
-// Testar conexão
+// Testar configuração
 router.post(
   "/evolution-configs/:id/test",
   authMiddleware,
   adminMiddleware,
   async (req, res) => {
     try {
-      const result = await EvolutionConfig.testConnection(req.params.id);
+      const config = await EvolutionConfig.findById(req.params.id);
 
-      res.json({
-        success: true,
-        data: result,
-      });
+      if (!config) {
+        return res.status(404).json({
+          success: false,
+          message: "Configuração não encontrada",
+        });
+      }
+
+      // Teste básico de conexão com a Evolution API
+      try {
+        const response = await axios.get(
+          `${config.server_url}/manager/findInstances`,
+          {
+            headers: {
+              apikey: config.api_key,
+              "Content-Type": "application/json",
+            },
+            timeout: 10000,
+          }
+        );
+
+        // Se o teste foi bem-sucedido, ativar a configuração
+        await EvolutionConfig.update(req.params.id, {
+          ...config,
+          is_active: true,
+        });
+
+        res.json({
+          success: true,
+          data: {
+            success: true,
+            message: "Conexão estabelecida com sucesso. Configuração ativada!",
+            response: response.data,
+          },
+        });
+      } catch (apiError) {
+        res.json({
+          success: true,
+          data: {
+            success: false,
+            message: `Falha na conexão: ${apiError.message}`,
+          },
+        });
+      }
     } catch (error) {
-      console.error("Erro ao testar conexão:", error);
+      console.error("Erro ao testar configuração:", error);
       res.status(500).json({
         success: false,
         message: "Erro interno do servidor",
@@ -313,19 +425,44 @@ router.get(
 // ===== INSTÂNCIAS =====
 
 // Listar instâncias
+router.get("/instances", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const instances = await Instance.findAll();
+    res.json({
+      success: true,
+      data: instances,
+    });
+  } catch (error) {
+    console.error("Erro ao listar instâncias:", error);
+    res.status(500).json({
+      success: false,
+      message: "Erro interno do servidor",
+    });
+  }
+});
+
+// Buscar instância específica
 router.get(
-  "/instances",
+  "/instances/:id",
   authMiddleware,
-  supervisorMiddleware,
+  adminMiddleware,
   async (req, res) => {
     try {
-      const instances = await Instance.findAll();
+      const instance = await Instance.findById(req.params.id);
+
+      if (!instance) {
+        return res.status(404).json({
+          success: false,
+          message: "Instância não encontrada",
+        });
+      }
+
       res.json({
         success: true,
-        data: instances,
+        data: instance,
       });
     } catch (error) {
-      console.error("Erro ao listar instâncias:", error);
+      console.error("Erro ao buscar instância:", error);
       res.status(500).json({
         success: false,
         message: "Erro interno do servidor",
@@ -358,11 +495,48 @@ router.post("/instances", authMiddleware, adminMiddleware, async (req, res) => {
       });
     }
 
+    // Buscar configuração da Evolution API
+    const config = await EvolutionConfig.findById(evolution_config_id);
+    if (!config) {
+      return res.status(404).json({
+        success: false,
+        message: "Configuração Evolution API não encontrada",
+      });
+    }
+
+    // Criar instância no banco de dados
     const instance = await Instance.create({
       name,
       instance_id,
       evolution_config_id,
     });
+
+    // Tentar criar instância na Evolution API se estiver ativa
+    if (config.is_active) {
+      const evolutionService = new EvolutionService(
+        config.server_url,
+        config.api_key
+      );
+      const webhookUrl =
+        config.webhook_url ||
+        `${
+          process.env.BASE_URL || req.protocol + "://" + req.get("host")
+        }/webhook`;
+
+      const result = await evolutionService.createInstance(
+        instance_id,
+        webhookUrl
+      );
+
+      if (!result.success) {
+        console.warn(
+          `⚠️ Falha ao criar instância na Evolution API: ${result.error}`
+        );
+        // Não falha a operação, apenas avisa
+      } else {
+        console.log(`✅ Instância ${instance_id} criada na Evolution API`);
+      }
+    }
 
     res.status(201).json({
       success: true,
@@ -438,6 +612,53 @@ router.delete(
   adminMiddleware,
   async (req, res) => {
     try {
+      // Buscar instância com configuração antes de deletar
+      const instance = await Instance.findById(req.params.id);
+
+      if (!instance) {
+        return res.status(404).json({
+          success: false,
+          message: "Instância não encontrada",
+        });
+      }
+
+      // Se estiver ativa, tentar remover da Evolution API
+      if (instance.is_active) {
+        const config = await EvolutionConfig.findById(
+          instance.evolution_config_id
+        );
+
+        if (config && config.is_active) {
+          const evolutionService = new EvolutionService(
+            config.server_url,
+            config.api_key
+          );
+
+          console.log(
+            `🔄 Removendo instância ${instance.instance_id} da Evolution API...`
+          );
+
+          // Desconectar primeiro
+          await evolutionService.disconnectInstance(instance.instance_id);
+
+          // Depois deletar
+          const result = await evolutionService.deleteInstance(
+            instance.instance_id
+          );
+
+          if (!result.success) {
+            console.warn(
+              `⚠️ Falha ao remover instância da Evolution API: ${result.error}`
+            );
+          } else {
+            console.log(
+              `✅ Instância ${instance.instance_id} removida da Evolution API`
+            );
+          }
+        }
+      }
+
+      // Deletar do banco de dados
       await Instance.delete(req.params.id);
 
       res.json({
@@ -516,7 +737,8 @@ router.post(
   adminMiddleware,
   async (req, res) => {
     try {
-      const instance = await Instance.toggleActive(req.params.id);
+      // Buscar instância com configuração
+      const instance = await Instance.findById(req.params.id);
 
       if (!instance) {
         return res.status(404).json({
@@ -525,15 +747,295 @@ router.post(
         });
       }
 
+      // Buscar configuração da Evolution API
+      const config = await EvolutionConfig.findById(
+        instance.evolution_config_id
+      );
+      if (!config || !config.is_active) {
+        return res.status(400).json({
+          success: false,
+          message: "Configuração Evolution API não encontrada ou inativa",
+        });
+      }
+
+      const evolutionService = new EvolutionService(
+        config.server_url,
+        config.api_key
+      );
+      const webhookUrl =
+        config.webhook_url ||
+        `${
+          process.env.BASE_URL || req.protocol + "://" + req.get("host")
+        }/webhook`;
+
+      let evolutionResult;
+
+      if (instance.is_active) {
+        // Desativar: desconectar e deletar da Evolution API
+        console.log(`🔄 Desativando instância ${instance.instance_id}...`);
+
+        // Primeiro desconectar
+        await evolutionService.disconnectInstance(instance.instance_id);
+
+        // Depois deletar
+        evolutionResult = await evolutionService.deleteInstance(
+          instance.instance_id
+        );
+
+        if (!evolutionResult.success) {
+          console.warn(
+            `⚠️ Falha ao deletar instância da Evolution API: ${evolutionResult.error}`
+          );
+        } else {
+          console.log(
+            `✅ Instância ${instance.instance_id} removida da Evolution API`
+          );
+        }
+      } else {
+        // Ativar: criar na Evolution API
+        console.log(`🔄 Ativando instância ${instance.instance_id}...`);
+
+        evolutionResult = await evolutionService.createInstance(
+          instance.instance_id,
+          webhookUrl
+        );
+
+        if (!evolutionResult.success) {
+          console.warn(
+            `⚠️ Falha ao criar instância na Evolution API: ${evolutionResult.error}`
+          );
+        } else {
+          console.log(
+            `✅ Instância ${instance.instance_id} criada na Evolution API`
+          );
+        }
+      }
+
+      // Atualizar status no banco independente do resultado da Evolution API
+      const updatedInstance = await Instance.toggleActive(req.params.id);
+
       res.json({
         success: true,
         message: `Instância ${
-          instance.is_active ? "ativada" : "desativada"
+          updatedInstance.is_active ? "ativada" : "desativada"
         } com sucesso`,
-        data: instance,
+        data: updatedInstance,
+        evolutionApiResult: evolutionResult,
       });
     } catch (error) {
       console.error("Erro ao alternar status da instância:", error);
+      res.status(500).json({
+        success: false,
+        message: "Erro interno do servidor",
+      });
+    }
+  }
+);
+
+// Conectar instância (obter QR Code)
+router.post(
+  "/instances/:id/connect",
+  authMiddleware,
+  adminMiddleware,
+  async (req, res) => {
+    try {
+      const instance = await Instance.findById(req.params.id);
+
+      if (!instance) {
+        return res.status(404).json({
+          success: false,
+          message: "Instância não encontrada",
+        });
+      }
+
+      if (!instance.is_active) {
+        return res.status(400).json({
+          success: false,
+          message: "Instância deve estar ativa para conectar",
+        });
+      }
+
+      const config = await EvolutionConfig.findById(
+        instance.evolution_config_id
+      );
+      if (!config || !config.is_active) {
+        return res.status(400).json({
+          success: false,
+          message: "Configuração Evolution API não encontrada ou inativa",
+        });
+      }
+
+      const evolutionService = new EvolutionService(
+        config.server_url,
+        config.api_key
+      );
+      const result = await evolutionService.connectInstance(
+        instance.instance_id
+      );
+
+      res.json({
+        success: result.success,
+        message: result.success
+          ? "QR Code gerado com sucesso"
+          : "Falha ao gerar QR Code",
+        data: result.data,
+        error: result.error,
+      });
+    } catch (error) {
+      console.error("Erro ao conectar instância:", error);
+      res.status(500).json({
+        success: false,
+        message: "Erro interno do servidor",
+      });
+    }
+  }
+);
+
+// Desconectar instância
+router.post(
+  "/instances/:id/disconnect",
+  authMiddleware,
+  adminMiddleware,
+  async (req, res) => {
+    try {
+      const instance = await Instance.findById(req.params.id);
+
+      if (!instance) {
+        return res.status(404).json({
+          success: false,
+          message: "Instância não encontrada",
+        });
+      }
+
+      const config = await EvolutionConfig.findById(
+        instance.evolution_config_id
+      );
+      if (!config || !config.is_active) {
+        return res.status(400).json({
+          success: false,
+          message: "Configuração Evolution API não encontrada ou inativa",
+        });
+      }
+
+      const evolutionService = new EvolutionService(
+        config.server_url,
+        config.api_key
+      );
+      const result = await evolutionService.disconnectInstance(
+        instance.instance_id
+      );
+
+      res.json({
+        success: result.success,
+        message: result.success
+          ? "Instância desconectada com sucesso"
+          : "Falha ao desconectar instância",
+        data: result.data,
+        error: result.error,
+      });
+    } catch (error) {
+      console.error("Erro ao desconectar instância:", error);
+      res.status(500).json({
+        success: false,
+        message: "Erro interno do servidor",
+      });
+    }
+  }
+);
+
+// Obter status da instância na Evolution API
+router.get(
+  "/instances/:id/status",
+  authMiddleware,
+  adminMiddleware,
+  async (req, res) => {
+    try {
+      const instance = await Instance.findById(req.params.id);
+
+      if (!instance) {
+        return res.status(404).json({
+          success: false,
+          message: "Instância não encontrada",
+        });
+      }
+
+      const config = await EvolutionConfig.findById(
+        instance.evolution_config_id
+      );
+      if (!config || !config.is_active) {
+        return res.status(400).json({
+          success: false,
+          message: "Configuração Evolution API não encontrada ou inativa",
+        });
+      }
+
+      const evolutionService = new EvolutionService(
+        config.server_url,
+        config.api_key
+      );
+      const result = await evolutionService.getInstanceStatus(
+        instance.instance_id
+      );
+
+      res.json({
+        success: result.success,
+        data: result.data,
+        error: result.error,
+      });
+    } catch (error) {
+      console.error("Erro ao obter status da instância:", error);
+      res.status(500).json({
+        success: false,
+        message: "Erro interno do servidor",
+      });
+    }
+  }
+);
+
+// Reiniciar instância
+router.post(
+  "/instances/:id/restart",
+  authMiddleware,
+  adminMiddleware,
+  async (req, res) => {
+    try {
+      const instance = await Instance.findById(req.params.id);
+
+      if (!instance) {
+        return res.status(404).json({
+          success: false,
+          message: "Instância não encontrada",
+        });
+      }
+
+      const config = await EvolutionConfig.findById(
+        instance.evolution_config_id
+      );
+      if (!config || !config.is_active) {
+        return res.status(400).json({
+          success: false,
+          message: "Configuração Evolution API não encontrada ou inativa",
+        });
+      }
+
+      const evolutionService = new EvolutionService(
+        config.server_url,
+        config.api_key
+      );
+      const result = await evolutionService.restartInstance(
+        instance.instance_id
+      );
+
+      res.json({
+        success: result.success,
+        message: result.success
+          ? "Instância reiniciada com sucesso"
+          : "Falha ao reiniciar instância",
+        data: result.data,
+        error: result.error,
+      });
+    } catch (error) {
+      console.error("Erro ao reiniciar instância:", error);
       res.status(500).json({
         success: false,
         message: "Erro interno do servidor",

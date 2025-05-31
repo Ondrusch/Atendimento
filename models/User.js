@@ -44,15 +44,31 @@ class User {
   }
 
   static async update(id, userData) {
-    const { name, email, role, avatar_url } = userData;
-    const query = `
-      UPDATE users 
-      SET name = $1, email = $2, role = $3, avatar_url = $4
-      WHERE id = $5
-      RETURNING id, name, email, role, status, avatar_url
-    `;
+    const { name, email, role, avatar_url, password } = userData;
 
-    const result = await pool.query(query, [name, email, role, avatar_url, id]);
+    // Se senha foi fornecida, fazer hash
+    let query, params;
+
+    if (password && password.trim() !== "") {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      query = `
+        UPDATE users 
+        SET name = $1, email = $2, role = $3, avatar_url = $4, password = $5
+        WHERE id = $6
+        RETURNING id, name, email, role, status, avatar_url
+      `;
+      params = [name, email, role, avatar_url, hashedPassword, id];
+    } else {
+      query = `
+        UPDATE users 
+        SET name = $1, email = $2, role = $3, avatar_url = $4
+        WHERE id = $5
+        RETURNING id, name, email, role, status, avatar_url
+      `;
+      params = [name, email, role, avatar_url, id];
+    }
+
+    const result = await pool.query(query, params);
     return result.rows[0];
   }
 
