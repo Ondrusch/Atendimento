@@ -3,6 +3,7 @@ const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 const User = require("../models/User");
 const EvolutionService = require("../services/EvolutionService");
+const ContactProfileService = require("../services/ContactProfileService");
 const { authMiddleware } = require("../middleware/auth");
 const Instance = require("../models/Instance");
 
@@ -45,6 +46,42 @@ router.get("/:id", authMiddleware, async (req, res) => {
         success: false,
         message: "Conversa não encontrada",
       });
+    }
+
+    // Atualizar perfil do contato automaticamente quando a conversa for acessada
+    if (conversation.contact_phone && conversation.instance_name) {
+      console.log(
+        `🔄 Atualizando perfil do contato ${conversation.contact_phone}...`
+      );
+
+      // Executar atualização de perfil em background (não aguardar)
+      ContactProfileService.updateContactProfile(
+        conversation.contact_phone,
+        conversation.instance_name
+      )
+        .then((profileResult) => {
+          if (profileResult.success && profileResult.updated) {
+            console.log(
+              `✅ Perfil atualizado automaticamente para ${conversation.contact_phone}`
+            );
+
+            // Emitir evento via Socket.IO para atualizar frontend em tempo real
+            const io = require("../server").io;
+            if (io) {
+              io.emit("contact_profile_updated", {
+                conversation_id: conversation.id,
+                contact_phone: conversation.contact_phone,
+                profile_data: profileResult.data,
+              });
+            }
+          }
+        })
+        .catch((error) => {
+          console.warn(
+            `⚠️ Erro ao atualizar perfil automaticamente:`,
+            error.message
+          );
+        });
     }
 
     res.json({
@@ -481,6 +518,70 @@ router.get("/:id/transfers", authMiddleware, async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Erro interno do servidor",
+    });
+  }
+});
+
+// Atualizar perfil do contato (profilePicUrl e pushname)
+router.post("/:id/update-contact-profile", authMiddleware, async (req, res) => {
+  try {
+    const conversation = await Conversation.findById(req.params.id);
+
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: "Conversa não encontrada",
+      });
+    }
+
+    if (!conversation.contact_phone || !conversation.instance_name) {
+      return res.status(400).json({
+        success: false,
+        message: "Dados de contato ou instância não encontrados",
+      });
+    }
+
+    console.log(
+      `🔄 Atualizando perfil manualmente para ${conversation.contact_phone}...`
+    );
+
+    const profileResult = await ContactProfileService.updateContactProfile(
+      conversation.contact_phone,
+      conversation.instance_name
+    );
+
+    if (profileResult.success) {
+      // Emitir evento via Socket.IO se houve atualização
+      if (profileResult.updated) {
+        const io = require("../server").io;
+        if (io) {
+          io.emit("contact_profile_updated", {
+            conversation_id: conversation.id,
+            contact_phone: conversation.contact_phone,
+            profile_data: profileResult.data,
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        message: profileResult.message,
+        updated: profileResult.updated,
+        data: profileResult.data || null,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: profileResult.message,
+        error: profileResult.error,
+      });
+    }
+  } catch (error) {
+    console.error("Erro ao atualizar perfil do contato:", error);
+    res.status(500).json({
+      success: false,
+      message: "Erro interno do servidor",
+      error: error.message,
     });
   }
 });

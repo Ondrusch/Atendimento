@@ -61,6 +61,22 @@ class Contact {
     return result.rows[0];
   }
 
+  static async updateProfile(phone, profileData) {
+    const { pushname, profilePicUrl } = profileData;
+
+    const query = `
+      UPDATE contacts 
+      SET name = COALESCE($1, name), 
+          avatar_url = COALESCE($2, avatar_url),
+          last_seen = CURRENT_TIMESTAMP
+      WHERE phone = $3
+      RETURNING *
+    `;
+
+    const result = await pool.query(query, [pushname, profilePicUrl, phone]);
+    return result.rows[0];
+  }
+
   static async updateLastSeen(phone) {
     const query = `
       UPDATE contacts 

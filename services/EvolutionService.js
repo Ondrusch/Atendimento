@@ -271,6 +271,34 @@ class EvolutionService {
     }
   }
 
+  // Buscar perfil do contato (profilePicUrl e pushname)
+  async findContactProfile(instanceId, remoteJid) {
+    try {
+      const response = await this.axios.post(
+        `/chat/findContacts/${instanceId}`,
+        {
+          where: {
+            remoteJid: remoteJid,
+          },
+        }
+      );
+
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error) {
+      console.error(
+        "Erro ao buscar perfil do contato:",
+        error.response?.data || error.message
+      );
+      return {
+        success: false,
+        error: error.response?.data || error.message,
+      };
+    }
+  }
+
   // Obter status da instância
   async getInstanceStatus(instanceId) {
     try {

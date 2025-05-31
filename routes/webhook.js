@@ -4,6 +4,7 @@ const Conversation = require("../models/Conversation");
 const Message = require("../models/Message");
 const Instance = require("../models/Instance");
 const EvolutionService = require("../services/EvolutionService");
+const ContactProfileService = require("../services/ContactProfileService");
 
 const router = express.Router();
 
@@ -124,6 +125,37 @@ async function processMessageUpsert(eventData, instanceName) {
       name: contactName,
     });
     console.log(`✅ Contato processado:`, contact.name || contact.phone);
+
+    // Atualizar perfil do contato automaticamente (em background)
+    if (!fromMe) {
+      // Só atualizar perfil para mensagens recebidas (não nossas)
+      console.log(
+        `🔄 Atualizando perfil do contato ${phone} automaticamente...`
+      );
+
+      ContactProfileService.updateContactProfile(phone, instanceName)
+        .then((profileResult) => {
+          if (profileResult.success && profileResult.updated) {
+            console.log(`✅ Perfil atualizado automaticamente para ${phone}`);
+
+            // Emitir evento via Socket.IO para atualizar frontend
+            const io = require("../server").io;
+            if (io) {
+              io.emit("contact_profile_updated", {
+                contact_phone: phone,
+                instance_name: instanceName,
+                profile_data: profileResult.data,
+              });
+            }
+          }
+        })
+        .catch((error) => {
+          console.warn(
+            `⚠️ Erro ao atualizar perfil automaticamente para ${phone}:`,
+            error.message
+          );
+        });
+    }
 
     // Buscar ou criar conversa
     console.log(`💬 Buscando conversa...`);

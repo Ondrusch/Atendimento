@@ -2,6 +2,7 @@ const express = require("express");
 const User = require("../models/User");
 const EvolutionConfig = require("../models/EvolutionConfig");
 const Instance = require("../models/Instance");
+const ContactProfileService = require("../services/ContactProfileService");
 const {
   authMiddleware,
   adminMiddleware,
@@ -536,6 +537,71 @@ router.post(
       res.status(500).json({
         success: false,
         message: "Erro interno do servidor",
+      });
+    }
+  }
+);
+
+// ===== PERFIS DE CONTATOS =====
+
+// Atualizar perfis de contatos em lote
+router.post(
+  "/contacts/update-profiles",
+  authMiddleware,
+  adminMiddleware,
+  async (req, res) => {
+    try {
+      const { contacts } = req.body;
+
+      if (!contacts || !Array.isArray(contacts) || contacts.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Lista de contatos é obrigatória e deve ser um array não vazio",
+        });
+      }
+
+      // Validar estrutura dos contatos
+      for (const contact of contacts) {
+        if (!contact.phone || !contact.instanceName) {
+          return res.status(400).json({
+            success: false,
+            message: "Cada contato deve ter 'phone' e 'instanceName'",
+          });
+        }
+      }
+
+      console.log(
+        `🔄 Iniciando atualização em lote de ${contacts.length} perfis de contatos...`
+      );
+
+      const results = await ContactProfileService.updateMultipleContactProfiles(
+        contacts
+      );
+
+      const successCount = results.filter((r) => r.success && r.updated).length;
+      const errorCount = results.filter((r) => !r.success).length;
+
+      console.log(
+        `✅ Atualização em lote concluída: ${successCount} sucessos, ${errorCount} erros`
+      );
+
+      res.json({
+        success: true,
+        message: `Atualização concluída: ${successCount} perfis atualizados, ${errorCount} erros`,
+        data: {
+          total: contacts.length,
+          updated: successCount,
+          errors: errorCount,
+          results: results,
+        },
+      });
+    } catch (error) {
+      console.error("Erro ao atualizar perfis em lote:", error);
+      res.status(500).json({
+        success: false,
+        message: "Erro interno do servidor",
+        error: error.message,
       });
     }
   }
