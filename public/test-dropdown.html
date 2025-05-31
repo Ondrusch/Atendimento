@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teste de Dropdowns</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        padding: 20px;
+        background-color: #f8f9fa;
+      }
+      .test-section {
+        background: white;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .navbar {
+        margin-bottom: 20px;
+      }
+      .dropdown-menu {
+        z-index: 9999 !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Teste de Dropdowns Bootstrap</h1>
+      <p class="text-muted">
+        Esta página testa diferentes implementações de dropdowns
+      </p>
+
+      <!-- Teste 1: Dropdown básico -->
+      <div class="test-section">
+        <h3>Teste 1: Dropdown Básico</h3>
+        <div class="dropdown">
+          <button
+            class="btn btn-primary dropdown-toggle"
+            type="button"
+            id="dropdownBasic"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+          >
+            Dropdown Básico
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="dropdownBasic">
+            <li><a class="dropdown-item" href="#">Item 1</a></li>
+            <li><a class="dropdown-item" href="#">Item 2</a></li>
+            <li><a class="dropdown-item" href="#">Item 3</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Teste 2: Dropdown em Navbar -->
+      <div class="test-section">
+        <h3>Teste 2: Dropdown em Navbar</h3>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+          <div class="container-fluid">
+            <a class="navbar-brand" href="#">Teste</a>
+            <div class="navbar-nav ms-auto">
+              <div class="nav-item dropdown">
+                <button
+                  class="btn btn-light dropdown-toggle"
+                  type="button"
+                  id="dropdownNavbar"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                >
+                  Usuário <i class="fas fa-user ms-1"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li><a class="dropdown-item" href="#">Configurações</a></li>
+                  <li><a class="dropdown-item" href="#">Perfil</a></li>
+                  <li><hr class="dropdown-divider" /></li>
+                  <li><a class="dropdown-item" href="#">Sair</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </nav>
+      </div>
+
+      <!-- Teste 3: Dropdown com Link -->
+      <div class="test-section">
+        <h3>Teste 3: Dropdown com Link (nav-link)</h3>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-secondary">
+          <div class="container-fluid">
+            <a class="navbar-brand" href="#">Teste</a>
+            <div class="navbar-nav ms-auto">
+              <div class="nav-item dropdown">
+                <a
+                  class="nav-link dropdown-toggle"
+                  href="#"
+                  id="dropdownNavLink"
+                  role="button"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                  style="color: white"
+                >
+                  <i class="fas fa-user-circle fa-2x me-2"></i>
+                  Usuário
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li><a class="dropdown-item" href="#">Configurações</a></li>
+                  <li><a class="dropdown-item" href="#">Perfil</a></li>
+                  <li><hr class="dropdown-divider" /></li>
+                  <li><a class="dropdown-item" href="#">Sair</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </nav>
+      </div>
+
+      <!-- Teste 4: Dropdown Manual -->
+      <div class="test-section">
+        <h3>Teste 4: Dropdown Manual (sem Bootstrap JS)</h3>
+        <div class="dropdown">
+          <button class="btn btn-warning" type="button" id="dropdownManual">
+            Dropdown Manual <i class="fas fa-chevron-down ms-1"></i>
+          </button>
+          <ul class="dropdown-menu" id="manualDropdownMenu">
+            <li><a class="dropdown-item" href="#">Item Manual 1</a></li>
+            <li><a class="dropdown-item" href="#">Item Manual 2</a></li>
+            <li><a class="dropdown-item" href="#">Item Manual 3</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Teste 5: Informações de Debug -->
+      <div class="test-section">
+        <h3>Informações de Debug</h3>
+        <div class="row">
+          <div class="col-md-6">
+            <h5>Bootstrap</h5>
+            <p id="bootstrapInfo">Verificando...</p>
+          </div>
+          <div class="col-md-6">
+            <h5>Eventos</h5>
+            <div
+              id="eventLog"
+              style="
+                height: 200px;
+                overflow-y: auto;
+                background: #f8f9fa;
+                padding: 10px;
+                border-radius: 4px;
+              "
+            >
+              <!-- Log de eventos aqui -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      // Log de eventos
+      function logEvent(message) {
+        const log = document.getElementById("eventLog");
+        const time = new Date().toLocaleTimeString();
+        log.innerHTML += `<div>[${time}] ${message}</div>`;
+        log.scrollTop = log.scrollHeight;
+      }
+
+      // Verificar Bootstrap
+      document.addEventListener("DOMContentLoaded", function () {
+        const info = document.getElementById("bootstrapInfo");
+
+        if (typeof bootstrap !== "undefined") {
+          info.innerHTML = `
+                    <span class="text-success">✓ Bootstrap carregado</span><br>
+                    <small>Versão: ${
+                      bootstrap.Tooltip.VERSION || "Desconhecida"
+                    }</small>
+                `;
+          logEvent("Bootstrap carregado com sucesso");
+        } else {
+          info.innerHTML =
+            '<span class="text-danger">✗ Bootstrap não encontrado</span>';
+          logEvent("ERRO: Bootstrap não carregado");
+        }
+
+        // Adicionar listeners para todos os dropdowns Bootstrap
+        const dropdowns = [
+          "dropdownBasic",
+          "dropdownNavbar",
+          "dropdownNavLink",
+        ];
+
+        dropdowns.forEach((id) => {
+          const element = document.getElementById(id);
+          if (element) {
+            element.addEventListener("click", function () {
+              logEvent(`Clique no dropdown: ${id}`);
+            });
+
+            element.addEventListener("show.bs.dropdown", function () {
+              logEvent(`Dropdown ${id} sendo mostrado`);
+            });
+
+            element.addEventListener("shown.bs.dropdown", function () {
+              logEvent(`Dropdown ${id} mostrado com sucesso`);
+            });
+
+            element.addEventListener("hide.bs.dropdown", function () {
+              logEvent(`Dropdown ${id} sendo ocultado`);
+            });
+          }
+        });
+
+        // Dropdown manual
+        const manualBtn = document.getElementById("dropdownManual");
+        const manualMenu = document.getElementById("manualDropdownMenu");
+
+        if (manualBtn && manualMenu) {
+          manualBtn.addEventListener("click", function () {
+            logEvent("Clique no dropdown manual");
+            manualMenu.classList.toggle("show");
+
+            if (manualMenu.classList.contains("show")) {
+              logEvent("Dropdown manual mostrado");
+            } else {
+              logEvent("Dropdown manual ocultado");
+            }
+          });
+
+          // Fechar dropdown manual ao clicar fora
+          document.addEventListener("click", function (e) {
+            if (
+              !manualBtn.contains(e.target) &&
+              !manualMenu.contains(e.target)
+            ) {
+              manualMenu.classList.remove("show");
+            }
+          });
+        }
+
+        logEvent("Página inicializada");
+      });
+
+      // Debug global de erros
+      window.addEventListener("error", function (e) {
+        logEvent(`ERRO: ${e.message}`);
+      });
+    </script>
+  </body>
+</html>

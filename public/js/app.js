@@ -9,20 +9,6 @@ let typingTimeout;
 // Inicialização da aplicação
 document.addEventListener("DOMContentLoaded", function () {
   initializeApp();
-
-  // Debug: Verificar se Bootstrap está carregado
-  if (typeof bootstrap !== "undefined") {
-    console.log("Bootstrap carregado com sucesso");
-  } else {
-    console.error("Bootstrap não foi carregado!");
-  }
-
-  // Adicionar event listener para debug do dropdown
-  document.addEventListener("click", function (e) {
-    if (e.target.closest("#userDropdown")) {
-      console.log("Dropdown clicado");
-    }
-  });
 });
 
 function initializeApp() {
@@ -280,39 +266,6 @@ function showMainInterface() {
   if (currentUser.role === "admin") {
     document.getElementById("adminMenuItems").classList.remove("d-none");
   }
-
-  // Inicializar dropdown manualmente se necessário
-  setTimeout(() => {
-    const dropdownElement = document.getElementById("userDropdown");
-    if (dropdownElement && typeof bootstrap !== "undefined") {
-      try {
-        const dropdown = new bootstrap.Dropdown(dropdownElement);
-        console.log("Dropdown inicializado com sucesso");
-
-        // Adicionar event listeners para posicionamento
-        dropdownElement.addEventListener("show.bs.dropdown", function () {
-          console.log("Dropdown sendo mostrado");
-          const dropdownMenu = this.nextElementSibling;
-          if (dropdownMenu) {
-            // Posicionamento relativo ao botão
-            dropdownMenu.style.position = "absolute";
-            dropdownMenu.style.zIndex = "9999";
-            dropdownMenu.style.top = "100%";
-            dropdownMenu.style.right = "0";
-            dropdownMenu.style.left = "auto";
-            dropdownMenu.style.transform = "none";
-            dropdownMenu.style.marginTop = "8px";
-          }
-        });
-
-        dropdownElement.addEventListener("shown.bs.dropdown", function () {
-          console.log("Dropdown mostrado");
-        });
-      } catch (error) {
-        console.error("Erro ao inicializar dropdown:", error);
-      }
-    }
-  }, 100);
 
   // Mostrar dica sobre atalhos (apenas uma vez por sessão)
   if (!sessionStorage.getItem("shortcutsShown")) {

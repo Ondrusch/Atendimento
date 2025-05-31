@@ -109,115 +109,84 @@
               <!-- Profile Dropdown -->
               <div class="nav-item dropdown">
                 <button
-                  class="btn nav-link dropdown-toggle d-flex align-items-center profile-dropdown"
+                  class="btn btn-light dropdown-toggle"
                   type="button"
                   id="userDropdown"
                   data-bs-toggle="dropdown"
                   aria-expanded="false"
                 >
-                  <div class="profile-avatar me-2">
-                    <div class="avatar-circle">
-                      <i class="fas fa-user"></i>
-                    </div>
-                    <div class="status-indicator" id="statusIndicator"></div>
-                  </div>
-                  <div class="profile-info d-none d-md-block">
-                    <div class="profile-name" id="userName"></div>
-                    <div class="profile-role" id="userRole"></div>
-                  </div>
-                  <i class="fas fa-chevron-down ms-2 dropdown-arrow"></i>
+                  <span id="userName">Usuário</span>
+                  <i class="fas fa-user ms-1"></i>
                 </button>
-                <ul
-                  class="dropdown-menu dropdown-menu-end profile-menu"
-                  aria-labelledby="userDropdown"
-                >
+                <ul class="dropdown-menu dropdown-menu-end">
                   <!-- Informações do Usuário -->
                   <li class="dropdown-header">
-                    <div class="d-flex align-items-center">
-                      <div class="profile-avatar-large me-3">
-                        <div class="avatar-circle-large">
-                          <i class="fas fa-user"></i>
-                        </div>
-                        <div
-                          class="status-indicator-large"
-                          id="statusIndicatorDropdown"
-                        ></div>
-                      </div>
-                      <div>
-                        <div class="fw-bold" id="userNameDropdown"></div>
-                        <div
-                          class="text-muted small"
-                          id="userEmailDropdown"
-                        ></div>
-                        <div class="small">
-                          <span class="badge" id="userStatusBadge">Online</span>
-                        </div>
-                      </div>
-                    </div>
+                    <strong id="userNameDropdown">Nome do Usuário</strong><br />
+                    <small class="text-muted" id="userEmailDropdown"
+                      >email@exemplo.com</small
+                    ><br />
+                    <span class="badge bg-success" id="userStatusBadge"
+                      >Online</span
+                    >
                   </li>
                   <li><hr class="dropdown-divider" /></li>
 
-                  <!-- Status Options -->
-                  <li class="dropdown-header small text-uppercase">
-                    <i class="fas fa-circle me-1"></i>Status
-                  </li>
+                  <!-- Status -->
+                  <li class="dropdown-header"><small>Status</small></li>
                   <li>
                     <a
-                      class="dropdown-item status-item"
+                      class="dropdown-item"
                       href="#"
                       onclick="changeStatus('online')"
                     >
-                      <i class="fas fa-circle text-success me-2"></i>
-                      <span>Online</span>
-                      <small class="text-muted ms-auto">Disponível</small>
+                      <i class="fas fa-circle text-success me-2"></i>Online
                     </a>
                   </li>
                   <li>
                     <a
-                      class="dropdown-item status-item"
+                      class="dropdown-item"
                       href="#"
                       onclick="changeStatus('busy')"
                     >
-                      <i class="fas fa-circle text-warning me-2"></i>
-                      <span>Ocupado</span>
-                      <small class="text-muted ms-auto">Não incomodar</small>
+                      <i class="fas fa-circle text-warning me-2"></i>Ocupado
                     </a>
                   </li>
                   <li><hr class="dropdown-divider" /></li>
 
-                  <!-- Admin Options -->
-                  <li id="adminMenuItems" class="d-none">
-                    <div class="dropdown-header small text-uppercase">
-                      <i class="fas fa-crown me-1"></i>Administração
-                    </div>
-                    <a
-                      class="dropdown-item"
-                      href="#"
-                      onclick="showAdminPanel()"
-                    >
-                      <i class="fas fa-cog me-2 text-primary"></i>
-                      <span>Configurações</span>
-                    </a>
-                    <a
-                      class="dropdown-item"
-                      href="#"
-                      onclick="showUserManagement()"
-                    >
-                      <i class="fas fa-users me-2 text-info"></i>
-                      <span>Usuários</span>
-                    </a>
-                    <hr class="dropdown-divider" />
-                  </li>
+                  <!-- Admin (visível apenas para admin) -->
+                  <div id="adminMenuItems" class="d-none">
+                    <li class="dropdown-header">
+                      <small>Administração</small>
+                    </li>
+                    <li>
+                      <a
+                        class="dropdown-item"
+                        href="#"
+                        onclick="showAdminPanel()"
+                      >
+                        <i class="fas fa-cog me-2"></i>Configurações
+                      </a>
+                    </li>
+                    <li>
+                      <a
+                        class="dropdown-item"
+                        href="#"
+                        onclick="showUserManagement()"
+                      >
+                        <i class="fas fa-users me-2"></i>Usuários
+                      </a>
+                    </li>
+                    <li><hr class="dropdown-divider" /></li>
+                  </div>
 
-                  <!-- User Actions -->
+                  <!-- Ações do usuário -->
                   <li>
                     <a
                       class="dropdown-item"
                       href="#"
                       onclick="showProfileSettings()"
                     >
-                      <i class="fas fa-user-edit me-2 text-secondary"></i>
-                      <span>Editar Perfil</span>
+                      <i class="fas fa-user-edit me-2"></i>Editar Perfil
                     </a>
                   </li>
                   <li>
@@ -226,8 +195,7 @@
                       href="#"
                       onclick="showNotificationSettings()"
                     >
-                      <i class="fas fa-bell me-2 text-secondary"></i>
-                      <span>Notificações</span>
+                      <i class="fas fa-bell me-2"></i>Notificações
                     </a>
                   </li>
                   <li><hr class="dropdown-divider" /></li>
@@ -235,12 +203,11 @@
                   <!-- Logout -->
                   <li>
                     <a
-                      class="dropdown-item text-danger logout-item"
+                      class="dropdown-item text-danger"
                       href="#"
                       onclick="logout()"
                     >
-                      <i class="fas fa-sign-out-alt me-2"></i>
-                      <span>Sair da Conta</span>
+                      <i class="fas fa-sign-out-alt me-2"></i>Sair da Conta
                     </a>
                   </li>
                 </ul>
