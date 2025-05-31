@@ -16,8 +16,23 @@
   </head>
   <body>
     <div id="app">
+      <!-- Tela de Carregamento -->
+      <div id="loadingScreen" class="loading-screen">
+        <div class="loading-container">
+          <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Carregando...</span>
+            </div>
+          </div>
+          <div class="loading-text mt-3">
+            <h5>Verificando autenticação...</h5>
+            <p class="text-muted">Aguarde um momento</p>
+          </div>
+        </div>
+      </div>
+
       <!-- Tela de Login -->
-      <div id="loginScreen" class="login-screen">
+      <div id="loginScreen" class="login-screen d-none">
         <div class="container">
           <div class="row justify-content-center">
             <div class="col-md-6 col-lg-4">
@@ -180,28 +195,38 @@
                     class="d-flex justify-content-between align-items-center"
                   >
                     <h5 class="mb-0">Conversas</h5>
-                    <div class="btn-group btn-group-sm" role="group">
+                    <div class="d-flex align-items-center">
                       <button
-                        type="button"
-                        class="btn btn-outline-primary"
-                        onclick="filterConversations('all')"
+                        class="btn btn-outline-info btn-sm me-2"
+                        onclick="refreshConversations()"
+                        id="refreshConversationsBtn"
+                        title="Atualizar conversas"
                       >
-                        Todas
+                        <i class="fas fa-sync-alt"></i>
                       </button>
-                      <button
-                        type="button"
-                        class="btn btn-outline-primary"
-                        onclick="filterConversations('waiting')"
-                      >
-                        Aguardando
-                      </button>
-                      <button
-                        type="button"
-                        class="btn btn-outline-primary"
-                        onclick="filterConversations('mine')"
-                      >
-                        Minhas
-                      </button>
+                      <div class="btn-group btn-group-sm" role="group">
+                        <button
+                          type="button"
+                          class="btn btn-outline-primary"
+                          onclick="filterConversations('all')"
+                        >
+                          Todas
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-outline-primary"
+                          onclick="filterConversations('waiting')"
+                        >
+                          Aguardando
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-outline-primary"
+                          onclick="filterConversations('mine')"
+                        >
+                          Minhas
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -246,6 +271,14 @@
                         </div>
                       </div>
                       <div class="btn-group">
+                        <button
+                          class="btn btn-sm btn-outline-info"
+                          onclick="refreshMessages()"
+                          id="refreshBtn"
+                          title="Atualizar mensagens"
+                        >
+                          <i class="fas fa-sync-alt"></i>
+                        </button>
                         <button
                           class="btn btn-sm btn-outline-primary"
                           onclick="assignConversation()"

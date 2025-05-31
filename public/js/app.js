@@ -12,12 +12,19 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 function initializeApp() {
+  // Mostrar tela de carregamento
+  showLoadingScreen();
+
   // Verificar se há token salvo
   const token = localStorage.getItem("authToken");
   if (token) {
     verifyToken(token);
   } else {
-    showLoginScreen();
+    // Aguardar um pouco para evitar piscar muito rápido
+    setTimeout(() => {
+      hideLoadingScreen();
+      showLoginScreen();
+    }, 800);
   }
 
   // Event listeners
@@ -43,6 +50,35 @@ function setupEventListeners() {
   document
     .getElementById("fileInput")
     .addEventListener("change", handleFileSelect);
+
+  // Atalhos de teclado
+  document.addEventListener("keydown", function (e) {
+    // Ctrl/Cmd + R para refresh (substituir F5)
+    if ((e.ctrlKey || e.metaKey) && e.key === "r") {
+      e.preventDefault();
+      if (currentConversation) {
+        refreshMessages();
+      } else {
+        refreshConversations();
+      }
+    }
+
+    // F5 para refresh suave (sem recarregar página)
+    if (e.key === "F5") {
+      e.preventDefault();
+      if (currentConversation) {
+        refreshMessages();
+      } else {
+        refreshConversations();
+      }
+    }
+
+    // Ctrl/Cmd + Shift + R para refresh conversas
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "R") {
+      e.preventDefault();
+      refreshConversations();
+    }
+  });
 }
 
 // ===== AUTENTICAÇÃO =====
@@ -52,6 +88,13 @@ async function handleLogin(e) {
 
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
+  const submitButton = e.target.querySelector('button[type="submit"]');
+  const originalButtonText = submitButton.innerHTML;
+
+  // Mostrar loading no botão
+  submitButton.disabled = true;
+  submitButton.innerHTML =
+    '<i class="fas fa-spinner fa-spin me-2"></i>Entrando...';
 
   try {
     const response = await fetch("/api/auth/login", {
@@ -67,19 +110,37 @@ async function handleLogin(e) {
     if (data.success) {
       localStorage.setItem("authToken", data.data.token);
       currentUser = data.data.user;
-      showMainInterface();
-      initializeSocket();
-      loadConversations();
+
+      // Mostrar tela de carregamento suave
+      showLoadingScreen();
+
+      // Aguardar um pouco para suavidade
+      setTimeout(() => {
+        hideLoadingScreen();
+        showMainInterface();
+        initializeSocket();
+        loadConversations();
+      }, 800);
     } else {
       showError(data.message);
+      // Restaurar botão
+      submitButton.disabled = false;
+      submitButton.innerHTML = originalButtonText;
     }
   } catch (error) {
     console.error("Erro no login:", error);
     showError("Erro ao fazer login. Tente novamente.");
+
+    // Restaurar botão
+    submitButton.disabled = false;
+    submitButton.innerHTML = originalButtonText;
   }
 }
 
 async function verifyToken(token) {
+  const startTime = Date.now();
+  const minLoadingTime = 800; // Tempo mínimo de carregamento para suavidade
+
   try {
     const response = await fetch("/api/auth/verify", {
       headers: {
@@ -89,24 +150,48 @@ async function verifyToken(token) {
 
     const data = await response.json();
 
+    // Calcular tempo restante para garantir carregamento suave
+    const elapsed = Date.now() - startTime;
+    const remainingTime = Math.max(0, minLoadingTime - elapsed);
+
     if (data.success) {
       currentUser = data.data.user;
-      showMainInterface();
-      initializeSocket();
-      loadConversations();
+
+      // Aguardar tempo mínimo se necessário
+      setTimeout(() => {
+        hideLoadingScreen();
+        showMainInterface();
+        initializeSocket();
+        loadConversations();
+      }, remainingTime);
     } else {
       localStorage.removeItem("authToken");
-      showLoginScreen();
+
+      setTimeout(() => {
+        hideLoadingScreen();
+        showLoginScreen();
+      }, remainingTime);
     }
   } catch (error) {
     console.error("Erro na verificação do token:", error);
     localStorage.removeItem("authToken");
-    showLoginScreen();
+
+    // Aguardar tempo mínimo mesmo em caso de erro
+    const elapsed = Date.now() - startTime;
+    const remainingTime = Math.max(0, minLoadingTime - elapsed);
+
+    setTimeout(() => {
+      hideLoadingScreen();
+      showLoginScreen();
+    }, remainingTime);
   }
 }
 
 function logout() {
   if (confirm("Tem certeza que deseja sair?")) {
+    // Mostrar loading suave
+    showLoadingScreen();
+
     // Fazer logout no servidor
     fetch("/api/auth/logout", {
       method: "POST",
@@ -128,11 +213,37 @@ function logout() {
     document.getElementById("adminMenuItems").classList.add("d-none");
     document.getElementById("adminMenuDivider").classList.add("d-none");
 
-    showLoginScreen();
+    // Aguardar um pouco para suavidade
+    setTimeout(() => {
+      hideLoadingScreen();
+      showLoginScreen();
+    }, 800);
   }
 }
 
 // ===== INTERFACE =====
+
+function showLoadingScreen() {
+  const loadingScreen = document.getElementById("loadingScreen");
+  const loginScreen = document.getElementById("loginScreen");
+  const mainInterface = document.getElementById("mainInterface");
+
+  loadingScreen.classList.remove("d-none", "fade-out");
+  loadingScreen.classList.add("fade-in");
+  loginScreen.classList.add("d-none");
+  mainInterface.classList.add("d-none");
+}
+
+function hideLoadingScreen() {
+  const loadingScreen = document.getElementById("loadingScreen");
+
+  loadingScreen.classList.add("fade-out");
+
+  // Aguardar animação terminar antes de ocultar
+  setTimeout(() => {
+    loadingScreen.classList.add("d-none");
+  }, 300);
+}
 
 function showLoginScreen() {
   document.getElementById("loginScreen").classList.remove("d-none");
@@ -152,6 +263,18 @@ function showMainInterface() {
     document.getElementById("adminMenuItems").classList.remove("d-none");
     document.getElementById("adminMenuDivider").classList.remove("d-none");
     document.getElementById("adminButtons").classList.remove("d-none");
+  }
+
+  // Mostrar dica sobre atalhos (apenas uma vez por sessão)
+  if (!sessionStorage.getItem("shortcutsShown")) {
+    setTimeout(() => {
+      showNotification(
+        "Dica",
+        "Use F5 ou Ctrl+R para atualizar mensagens, Ctrl+Shift+R para atualizar conversas",
+        "info"
+      );
+      sessionStorage.setItem("shortcutsShown", "true");
+    }, 2000);
   }
 }
 
@@ -1578,5 +1701,66 @@ async function deleteUser(id) {
   } catch (error) {
     console.error("Erro ao excluir usuário:", error);
     showNotification("Erro", "Erro ao excluir usuário", "danger");
+  }
+}
+
+// Função para atualizar mensagens sem recarregar a página
+async function refreshMessages() {
+  if (!currentConversation) return;
+
+  const refreshBtn = document.getElementById("refreshBtn");
+  const originalIcon = refreshBtn.innerHTML;
+
+  try {
+    // Mostrar loading no botão
+    refreshBtn.disabled = true;
+    refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    // Recarregar mensagens
+    await loadMessages();
+
+    // Mostrar notificação suave
+    showNotification(
+      "Atualizado",
+      "Mensagens atualizadas com sucesso",
+      "success"
+    );
+  } catch (error) {
+    console.error("Erro ao atualizar mensagens:", error);
+    showNotification("Erro", "Erro ao atualizar mensagens", "danger");
+  } finally {
+    // Restaurar botão
+    setTimeout(() => {
+      refreshBtn.disabled = false;
+      refreshBtn.innerHTML = originalIcon;
+    }, 500);
+  }
+}
+
+// Função para atualizar todas as conversas
+async function refreshConversations() {
+  const refreshBtn = document.getElementById("refreshConversationsBtn");
+  const originalIcon = refreshBtn ? refreshBtn.innerHTML : null;
+
+  try {
+    // Mostrar loading no botão se existir
+    if (refreshBtn) {
+      refreshBtn.disabled = true;
+      refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    }
+
+    await loadConversations();
+    showNotification("Atualizado", "Lista de conversas atualizada", "success");
+  } catch (error) {
+    console.error("Erro ao atualizar conversas:", error);
+    showNotification("Erro", "Erro ao atualizar conversas", "danger");
+  } finally {
+    // Restaurar botão
+    if (refreshBtn && originalIcon) {
+      setTimeout(() => {
+        refreshBtn.disabled = false;
+        refreshBtn.innerHTML = originalIcon;
+      }, 500);
+    }
   }
 }
